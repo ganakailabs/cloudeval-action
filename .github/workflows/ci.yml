@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate action.yml (yaml)
+        run: ruby -e "require 'yaml'; YAML.load_file('action.yml')"
+
+      - name: Bash syntax
+        run: bash -n scripts/run.sh && bash -n scripts/pr-comment.sh
+
+  mock-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stub cloudeval (json ask)
+        run: |
+          mkdir -p bin
+          echo $'#!/usr/bin/env bash\nfor a in "$@"; do\n  if [[ "$a" == "ask" ]]; then\n    echo \'{"score":0.95}\'\n    exit 0\n  fi\ndone\necho stub: unexpected args: "$*" >&2\nexit 1' > bin/cloudeval
+          chmod +x bin/cloudeval
+          echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
+
+      - name: Composite action (gate)
+        uses: ./
+        with:
+          access_key: cev_live_ak_01MOCKMOCKMOCKMOCK_mockkeyvalue
+          skip_cli_install: "true"
+          mode: gate
+          ask_prompt: "stub"
+          gate_threshold: "0.5"
+          gate_jq: ".score"

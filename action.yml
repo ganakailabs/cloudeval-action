@@ -1,0 +1,143 @@
+name: CloudEval Action
+description: Run CloudEval CLI in GitHub Actions using a scoped access key (CLOUDEVAL_ACCESS_KEY).
+author: CloudEval
+
+branding:
+  icon: cloud
+  color: blue
+
+inputs:
+  access_key:
+    description: CloudEval access key (store in a secret; use secrets.CLOUDEVAL_ACCESS_KEY).
+    required: true
+  base_url:
+    description: Optional API base URL (same as CLOUDEVAL_BASE_URL / cloudeval --base-url).
+    required: false
+    default: ""
+  mode:
+    description: "Execution mode — ask, gate, reports, nightly, or agent."
+    required: false
+    default: ask
+  project_id:
+    description: Project id for project-scoped commands (reports, ask --project).
+    required: false
+    default: ""
+  ask_prompt:
+    description: Prompt for ask mode (and default prompt for gate/nightly when mode is ask).
+    required: false
+    default: ""
+  agent_task:
+    description: Task for agent mode (non-empty switches agent instead of ask for applicable modes).
+    required: false
+    default: ""
+  gate_threshold:
+    description: For gate mode (or when set with ask), numeric threshold; fail job if extracted value is below threshold.
+    required: false
+    default: ""
+  gate_jq:
+    description: jq expression applied to CLI JSON stdout to yield a single number for gating (e.g. .score).
+    required: false
+    default: .score
+  reports_type:
+    description: Argument to cloudeval reports run --type (e.g. all, cost, waf).
+    required: false
+    default: all
+  reports_download:
+    description: After reports run, download reports to reports_output_dir.
+    required: false
+    default: "true"
+  reports_output_dir:
+    description: Directory for cloudeval reports download.
+    required: false
+    default: cloudeval-reports
+  working_directory:
+    description: Working directory for CLI invocations.
+    required: false
+    default: .
+  cli_install_url:
+    description: URL of the CloudEval CLI install script.
+    required: false
+    default: https://cli.cloudeval.ai/install.sh
+  skip_cli_install:
+    description: If true, skip installer (cloudeval must already be on PATH). For self-hosted mirrors or tests only.
+    required: false
+    default: "false"
+  post_pr_comment:
+    description: Post or update a PR comment with the summary (needs GITHUB_TOKEN with pull-requests write on forks may be limited).
+    required: false
+    default: "false"
+  upload_artifacts:
+    description: Upload cloudeval-out directory as a workflow artifact.
+    required: false
+    default: "false"
+  artifact_name:
+    description: Name for actions/upload-artifact when upload_artifacts is true.
+    required: false
+    default: cloudeval-output
+
+outputs:
+  result:
+    description: pass or fail
+    value: ${{ steps.run.outputs.result }}
+  score:
+    description: Numeric score when gating extracted one
+    value: ${{ steps.run.outputs.score }}
+  summary_markdown:
+    description: Markdown summary of the run
+    value: ${{ steps.run.outputs.summary_markdown }}
+  summary_file:
+    description: Absolute path to summary markdown on the runner (for follow-up steps)
+    value: ${{ steps.run.outputs.summary_file }}
+  report_path:
+    description: Directory containing downloaded reports when applicable
+    value: ${{ steps.run.outputs.report_path }}
+  json_path:
+    description: Path to captured CLI JSON stdout when applicable
+    value: ${{ steps.run.outputs.json_path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install CloudEval CLI
+      if: inputs.skip_cli_install != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl -fsSL "${{ inputs.cli_install_url }}" | bash
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Run CloudEval
+      id: run
+      shell: bash
+      env:
+        CLOUDEVAL_ACCESS_KEY: ${{ inputs.access_key }}
+        INPUT_BASE_URL: ${{ inputs.base_url }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_PROJECT_ID: ${{ inputs.project_id }}
+        INPUT_ASK_PROMPT: ${{ inputs.ask_prompt }}
+        INPUT_AGENT_TASK: ${{ inputs.agent_task }}
+        INPUT_GATE_THRESHOLD: ${{ inputs.gate_threshold }}
+        INPUT_GATE_JQ: ${{ inputs.gate_jq }}
+        INPUT_REPORTS_TYPE: ${{ inputs.reports_type }}
+        INPUT_REPORTS_DOWNLOAD: ${{ inputs.reports_download }}
+        INPUT_REPORTS_OUTPUT_DIR: ${{ inputs.reports_output_dir }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
+      run: bash "${{ github.action_path }}/scripts/run.sh"
+
+    - name: Upload artifact
+      if: inputs.upload_artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ steps.run.outputs.artifact_path }}
+
+    - name: PR comment
+      if: inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        SUMMARY_FILE: ${{ steps.run.outputs.summary_file }}
+        RESULT: ${{ steps.run.outputs.result }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: bash "${{ github.action_path }}/scripts/pr-comment.sh"

@@ -1,0 +1,85 @@
+name: CloudEval (reusable)
+
+# Call from another repo:
+#   uses: <org>/cloudeval-action/.github/workflows/cloudeval-reusable.yml@<ref>
+# Pin action_repository / action_ref if you fork the action.
+
+on:
+  workflow_call:
+    secrets:
+      CLOUDEVAL_ACCESS_KEY:
+        description: Scoped CloudEval access key (cev_…)
+        required: true
+    inputs:
+      action_repository:
+        description: Published action repo (owner/name) — must match this workflow’s repo when using upstream
+        type: string
+        required: false
+        default: ganakailabs/cloudeval-action
+      action_ref:
+        description: Tag or SHA of the action to run (e.g. v1)
+        type: string
+        required: false
+        default: v1
+      mode:
+        description: ask, gate, agent, reports, or nightly
+        type: string
+        required: false
+        default: ask
+      base_url:
+        description: Optional CLOUDEVAL_BASE_URL
+        type: string
+        required: false
+        default: ""
+      project_id:
+        type: string
+        required: false
+        default: ""
+      ask_prompt:
+        type: string
+        required: false
+        default: ""
+      agent_task:
+        type: string
+        required: false
+        default: ""
+      gate_threshold:
+        type: string
+        required: false
+        default: ""
+      gate_jq:
+        type: string
+        required: false
+        default: .score
+      post_pr_comment:
+        type: boolean
+        required: false
+        default: false
+      upload_artifacts:
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CloudEval
+        uses: ${{ inputs.action_repository }}@${{ inputs.action_ref }}
+        with:
+          access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
+          base_url: ${{ inputs.base_url }}
+          mode: ${{ inputs.mode }}
+          project_id: ${{ inputs.project_id }}
+          ask_prompt: ${{ inputs.ask_prompt }}
+          agent_task: ${{ inputs.agent_task }}
+          gate_threshold: ${{ inputs.gate_threshold }}
+          gate_jq: ${{ inputs.gate_jq }}
+          post_pr_comment: ${{ inputs.post_pr_comment }}
+          upload_artifacts: ${{ inputs.upload_artifacts }}
