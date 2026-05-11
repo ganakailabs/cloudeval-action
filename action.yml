@@ -1,5 +1,5 @@
 name: CloudEval Action
-description: Run CloudEval CLI in GitHub Actions using a scoped access key (CLOUDEVAL_ACCESS_KEY).
+description: Run CloudEval CLI in GitHub Actions with scoped access keys, gating, reports, PR feedback, and artifacts.
 author: CloudEval
 
 branding:
@@ -8,92 +8,162 @@ branding:
 
 inputs:
   access_key:
-    description: CloudEval access key (store in a secret; use secrets.CLOUDEVAL_ACCESS_KEY).
+    description: CloudEval access key (repository secret; use secrets.CLOUDEVAL_ACCESS_KEY).
     required: true
   base_url:
-    description: Optional API base URL (same as CLOUDEVAL_BASE_URL / cloudeval --base-url).
+    description: Optional API base URL (CLOUDEVAL_BASE_URL / cloudeval --base-url).
     required: false
     default: ""
   mode:
-    description: "Execution mode — ask, gate, reports, nightly, or agent."
+    description: "Execution mode — ask, gate, agent, reports, or nightly."
     required: false
     default: ask
   project_id:
-    description: Project id for project-scoped commands (reports, ask --project).
+    description: Project id for project-scoped commands.
     required: false
     default: ""
   ask_prompt:
-    description: Prompt for ask mode (and default prompt for gate/nightly when mode is ask).
+    description: Prompt for ask (or gate/nightly when using ask).
     required: false
     default: ""
   agent_task:
-    description: Task for agent mode (non-empty switches agent instead of ask for applicable modes).
+    description: Task for agent mode (when set, ask/gate/nightly use agent instead of ask where applicable).
     required: false
     default: ""
   gate_threshold:
-    description: For gate mode (or when set with ask), numeric threshold; fail job if extracted value is below threshold.
+    description: Numeric threshold for gate mode (optional on ask/agent/nightly to enforce a bound).
     required: false
     default: ""
   gate_jq:
-    description: jq expression applied to CLI JSON stdout to yield a single number for gating (e.g. .score).
+    description: jq expression on CLI JSON stdout yielding one number (tonumber applied).
     required: false
     default: .score
+  gate_operator:
+    description: "How extracted value relates to threshold — ge (>=), gt, le, lte (<=), lt, eq, ne."
+    required: false
+    default: ge
+  summary_answer_jq:
+    description: Optional jq expression to pull a short text snippet into the job/PR summary (e.g. .answer).
+    required: false
+    default: ""
+  quiet:
+    description: Pass --quiet to cloudeval for cleaner CI logs.
+    required: false
+    default: "true"
+  progress:
+    description: CLI progress — use none to pass --progress none (recommended in CI).
+    required: false
+    default: none
+  model:
+    description: Optional cloudeval --model.
+    required: false
+    default: ""
+  profile:
+    description: Optional cloudeval --profile.
+    required: false
+    default: ""
   reports_type:
-    description: Argument to cloudeval reports run --type (e.g. all, cost, waf).
+    description: cloudeval reports run / download --type.
     required: false
     default: all
+  reports_region:
+    description: cloudeval reports run --region (cost reports).
+    required: false
+    default: eastus
+  reports_currency:
+    description: cloudeval reports run --currency.
+    required: false
+    default: USD
+  reports_wait:
+    description: Pass --wait to reports run (poll until jobs finish).
+    required: false
+    default: "false"
+  reports_poll_interval_ms:
+    description: Poll interval when reports_wait is true.
+    required: false
+    default: "2500"
   reports_download:
-    description: After reports run, download reports to reports_output_dir.
+    description: Run reports download after reports run.
     required: false
     default: "true"
   reports_output_dir:
-    description: Directory for cloudeval reports download.
+    description: Output directory for reports download.
     required: false
     default: cloudeval-reports
   working_directory:
-    description: Working directory for CLI invocations.
+    description: Working directory for CLI.
     required: false
     default: .
   cli_install_url:
-    description: URL of the CloudEval CLI install script.
+    description: CloudEval CLI install script URL.
     required: false
     default: https://cli.cloudeval.ai/install.sh
   skip_cli_install:
-    description: If true, skip installer (cloudeval must already be on PATH). For self-hosted mirrors or tests only.
+    description: Skip installer; cloudeval must be on PATH (mirrors, tests).
     required: false
     default: "false"
   post_pr_comment:
-    description: Post or update a PR comment with the summary (needs GITHUB_TOKEN with pull-requests write on forks may be limited).
+    description: Post or update one PR comment (pull-requests write; limited on fork PRs).
     required: false
     default: "false"
+  pr_comment_collapsed_details:
+    description: Wrap the summary body in a collapsible <details> block in the PR comment.
+    required: false
+    default: "true"
+  pr_comment_json_excerpt:
+    description: Append a collapsible JSON excerpt from CLI stdout (truncated) to the PR comment.
+    required: false
+    default: "false"
+  pr_comment_max_json_chars:
+    description: Max characters of JSON excerpt in PR comment.
+    required: false
+    default: "12000"
   upload_artifacts:
-    description: Upload cloudeval-out directory as a workflow artifact.
+    description: Upload staged output (summary, json, reports) as a workflow artifact.
     required: false
     default: "false"
   artifact_name:
-    description: Name for actions/upload-artifact when upload_artifacts is true.
+    description: Artifact name when upload_artifacts is true.
     required: false
     default: cloudeval-output
+  artifact_retention_days:
+    description: Artifact retention (days); 0 uses repo default.
+    required: false
+    default: "14"
+  include_run_metadata:
+    description: Add run URL, ref, and SHA to markdown summary and PR comment.
+    required: false
+    default: "true"
+  job_summary_title:
+    description: Heading for the GitHub Actions job summary.
+    required: false
+    default: CloudEval
 
 outputs:
   result:
     description: pass or fail
     value: ${{ steps.run.outputs.result }}
   score:
-    description: Numeric score when gating extracted one
+    description: Numeric value when gating ran (same as extracted_value)
     value: ${{ steps.run.outputs.score }}
+  extracted_value:
+    description: Numeric value from gate_jq when gating ran
+    value: ${{ steps.run.outputs.extracted_value }}
   summary_markdown:
-    description: Markdown summary of the run
+    description: Markdown summary
     value: ${{ steps.run.outputs.summary_markdown }}
   summary_file:
-    description: Absolute path to summary markdown on the runner (for follow-up steps)
+    description: Path to summary file on the runner
     value: ${{ steps.run.outputs.summary_file }}
   report_path:
-    description: Directory containing downloaded reports when applicable
+    description: Absolute path to reports directory when download ran
     value: ${{ steps.run.outputs.report_path }}
   json_path:
-    description: Path to captured CLI JSON stdout when applicable
+    description: Path to captured CLI JSON stdout
     value: ${{ steps.run.outputs.json_path }}
+  run_url:
+    description: URL to this workflow run (when include_run_metadata supplies server env)
+    value: ${{ steps.run.outputs.run_url }}
 
 runs:
   using: composite
@@ -103,7 +173,8 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        curl -fsSL "${{ inputs.cli_install_url }}" | bash
+        curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 30 \
+          "${{ inputs.cli_install_url }}" | bash
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - name: Run CloudEval
@@ -118,18 +189,37 @@ runs:
         INPUT_AGENT_TASK: ${{ inputs.agent_task }}
         INPUT_GATE_THRESHOLD: ${{ inputs.gate_threshold }}
         INPUT_GATE_JQ: ${{ inputs.gate_jq }}
+        INPUT_GATE_OPERATOR: ${{ inputs.gate_operator }}
+        INPUT_SUMMARY_ANSWER_JQ: ${{ inputs.summary_answer_jq }}
+        INPUT_QUIET: ${{ inputs.quiet }}
+        INPUT_PROGRESS: ${{ inputs.progress }}
+        INPUT_MODEL: ${{ inputs.model }}
+        INPUT_PROFILE: ${{ inputs.profile }}
         INPUT_REPORTS_TYPE: ${{ inputs.reports_type }}
+        INPUT_REPORTS_REGION: ${{ inputs.reports_region }}
+        INPUT_REPORTS_CURRENCY: ${{ inputs.reports_currency }}
+        INPUT_REPORTS_WAIT: ${{ inputs.reports_wait }}
+        INPUT_REPORTS_POLL_INTERVAL_MS: ${{ inputs.reports_poll_interval_ms }}
         INPUT_REPORTS_DOWNLOAD: ${{ inputs.reports_download }}
         INPUT_REPORTS_OUTPUT_DIR: ${{ inputs.reports_output_dir }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        INPUT_INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}
+        INPUT_JOB_SUMMARY_TITLE: ${{ inputs.job_summary_title }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
       run: bash "${{ github.action_path }}/scripts/run.sh"
 
     - name: Upload artifact
       if: inputs.upload_artifacts == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: ${{ inputs.artifact_name }}
         path: ${{ steps.run.outputs.artifact_path }}
+        retention-days: ${{ inputs.artifact_retention_days }}
 
     - name: PR comment
       if: inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
@@ -137,7 +227,18 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
         SUMMARY_FILE: ${{ steps.run.outputs.summary_file }}
+        JSON_PATH: ${{ steps.run.outputs.json_path }}
         RESULT: ${{ steps.run.outputs.result }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO: ${{ github.repository }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
+        PR_COMMENT_COLLAPSED: ${{ inputs.pr_comment_collapsed_details }}
+        PR_COMMENT_JSON_EXCERPT: ${{ inputs.pr_comment_json_excerpt }}
+        PR_COMMENT_MAX_JSON_CHARS: ${{ inputs.pr_comment_max_json_chars }}
+        INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}
       run: bash "${{ github.action_path }}/scripts/pr-comment.sh"

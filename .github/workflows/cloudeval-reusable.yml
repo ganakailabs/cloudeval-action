@@ -1,8 +1,11 @@
 name: CloudEval (reusable)
 
-# Call from another repo:
-#   uses: <org>/cloudeval-action/.github/workflows/cloudeval-reusable.yml@<ref>
-# Pin action_repository / action_ref if you fork the action.
+# Call from another repository:
+#   jobs:
+#     eval:
+#       uses: ganakailabs/cloudeval-action/.github/workflows/cloudeval-reusable.yml@v1
+#       secrets:
+#         CLOUDEVAL_ACCESS_KEY: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
 
 on:
   workflow_call:
@@ -12,22 +15,20 @@ on:
         required: true
     inputs:
       action_repository:
-        description: Published action repo (owner/name) — must match this workflow’s repo when using upstream
+        description: Action repo owner/name (override if you fork)
         type: string
         required: false
         default: ganakailabs/cloudeval-action
       action_ref:
-        description: Tag or SHA of the action to run (e.g. v1)
+        description: Tag or SHA (e.g. v1)
         type: string
         required: false
         default: v1
       mode:
-        description: ask, gate, agent, reports, or nightly
         type: string
         required: false
         default: ask
       base_url:
-        description: Optional CLOUDEVAL_BASE_URL
         type: string
         required: false
         default: ""
@@ -51,7 +52,67 @@ on:
         type: string
         required: false
         default: .score
+      gate_operator:
+        type: string
+        required: false
+        default: ge
+      summary_answer_jq:
+        type: string
+        required: false
+        default: ""
+      quiet:
+        type: boolean
+        required: false
+        default: true
+      progress:
+        type: string
+        required: false
+        default: none
+      model:
+        type: string
+        required: false
+        default: ""
+      profile:
+        type: string
+        required: false
+        default: ""
+      reports_type:
+        type: string
+        required: false
+        default: all
+      reports_region:
+        type: string
+        required: false
+        default: eastus
+      reports_currency:
+        type: string
+        required: false
+        default: USD
+      reports_wait:
+        type: boolean
+        required: false
+        default: false
+      reports_poll_interval_ms:
+        type: string
+        required: false
+        default: "2500"
+      reports_download:
+        type: boolean
+        required: false
+        default: true
+      reports_output_dir:
+        type: string
+        required: false
+        default: cloudeval-reports
       post_pr_comment:
+        type: boolean
+        required: false
+        default: false
+      pr_comment_collapsed_details:
+        type: boolean
+        required: false
+        default: true
+      pr_comment_json_excerpt:
         type: boolean
         required: false
         default: false
@@ -59,6 +120,22 @@ on:
         type: boolean
         required: false
         default: false
+      artifact_name:
+        type: string
+        required: false
+        default: cloudeval-output
+      artifact_retention_days:
+        type: string
+        required: false
+        default: "14"
+      include_run_metadata:
+        type: boolean
+        required: false
+        default: true
+      job_summary_title:
+        type: string
+        required: false
+        default: CloudEval
 
 permissions:
   contents: read
@@ -68,7 +145,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: CloudEval
         uses: ${{ inputs.action_repository }}@${{ inputs.action_ref }}
@@ -81,5 +158,24 @@ jobs:
           agent_task: ${{ inputs.agent_task }}
           gate_threshold: ${{ inputs.gate_threshold }}
           gate_jq: ${{ inputs.gate_jq }}
+          gate_operator: ${{ inputs.gate_operator }}
+          summary_answer_jq: ${{ inputs.summary_answer_jq }}
+          quiet: ${{ inputs.quiet }}
+          progress: ${{ inputs.progress }}
+          model: ${{ inputs.model }}
+          profile: ${{ inputs.profile }}
+          reports_type: ${{ inputs.reports_type }}
+          reports_region: ${{ inputs.reports_region }}
+          reports_currency: ${{ inputs.reports_currency }}
+          reports_wait: ${{ inputs.reports_wait }}
+          reports_poll_interval_ms: ${{ inputs.reports_poll_interval_ms }}
+          reports_download: ${{ inputs.reports_download }}
+          reports_output_dir: ${{ inputs.reports_output_dir }}
           post_pr_comment: ${{ inputs.post_pr_comment }}
+          pr_comment_collapsed_details: ${{ inputs.pr_comment_collapsed_details }}
+          pr_comment_json_excerpt: ${{ inputs.pr_comment_json_excerpt }}
           upload_artifacts: ${{ inputs.upload_artifacts }}
+          artifact_name: ${{ inputs.artifact_name }}
+          artifact_retention_days: ${{ inputs.artifact_retention_days }}
+          include_run_metadata: ${{ inputs.include_run_metadata }}
+          job_summary_title: ${{ inputs.job_summary_title }}

@@ -9,19 +9,100 @@ SUMMARY_FILE="$OUT_DIR/summary.md"
 ARTIFACT_DIR="$OUT_DIR/artifact-staging"
 mkdir -p "$ARTIFACT_DIR"
 
+run_url_value() {
+  local base="${GITHUB_SERVER_URL:-https://github.com}"
+  local repo="${GITHUB_REPOSITORY:-}"
+  local rid="${GITHUB_RUN_ID:-}"
+  if [[ -n "$repo" && -n "$rid" ]]; then
+    printf '%s/%s/actions/runs/%s' "$base" "$repo" "$rid"
+  else
+    printf ''
+  fi
+}
+
+append_run_metadata() {
+  [[ "${INPUT_INCLUDE_RUN_METADATA:-true}" != "true" ]] && return 0
+  local url
+  url="$(run_url_value)"
+  {
+    echo ""
+    echo "---"
+    echo ""
+    echo "| | |"
+    echo "| --- | --- |"
+    [[ -n "$url" ]] && echo "| **Workflow run** | $url |"
+    [[ -n "${GITHUB_WORKFLOW:-}" ]] && echo "| **Workflow** | \`${GITHUB_WORKFLOW}\` |"
+    [[ -n "${GITHUB_REF:-}" ]] && echo "| **Ref** | \`${GITHUB_REF}\` |"
+    [[ -n "${GITHUB_SHA:-}" ]] && echo "| **SHA** | \`${GITHUB_SHA:0:7}\` |"
+  }
+}
+
+append_answer_snippet() {
+  local jq_expr="${INPUT_SUMMARY_ANSWER_JQ:-}"
+  [[ -z "$jq_expr" ]] && return 0
+  [[ ! -f "$JSON_FILE" ]] && return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  local snippet
+  if ! snippet="$(jq -r "$jq_expr" "$JSON_FILE" 2>/dev/null)"; then
+    return 0
+  fi
+  [[ -z "$snippet" || "$snippet" == "null" ]] && return 0
+  {
+    echo ""
+    echo "#### Model output (excerpt)"
+    echo ""
+    echo '```text'
+    echo "$snippet" | head -c 8000
+    echo '```'
+  }
+}
+
+validate_cli_json() {
+  if [[ ! -s "$JSON_FILE" ]]; then
+    summarize_fail "cloudeval produced no stdout json (empty file). Check auth, base_url, and flags."
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! jq -e . >/dev/null 2>&1 <"$JSON_FILE"; then
+    preview="$(head -c 400 "$JSON_FILE" | tr -d '\r' | tr -cd '\11\12\15\40-\176' || true)"
+    summarize_fail "cloudeval stdout is not valid JSON. First 400 chars (sanitized): ${preview}"
+  fi
+}
+
+build_common_cli_flags() {
+  COMMON_FLAGS=()
+  if [[ "${INPUT_QUIET:-true}" == "true" ]]; then
+    COMMON_FLAGS+=(--quiet)
+  fi
+  if [[ -n "${INPUT_PROGRESS:-}" && "${INPUT_PROGRESS}" != "default" ]]; then
+    COMMON_FLAGS+=(--progress "$INPUT_PROGRESS")
+  fi
+  if [[ -n "${INPUT_MODEL:-}" ]]; then
+    COMMON_FLAGS+=(--model "$INPUT_MODEL")
+  fi
+  if [[ -n "${INPUT_PROFILE:-}" ]]; then
+    COMMON_FLAGS+=(--profile "$INPUT_PROFILE")
+  fi
+}
+
 write_outputs() {
   local result="$1"
-  local score="${2:-}"
+  local extracted="${2:-}"
   local report_path="${3:-}"
   local summary_md
   summary_md="$(cat "$SUMMARY_FILE")"
+  local run_url
+  run_url="$(run_url_value)"
 
   {
     echo "result=$result"
     echo "json_path=$JSON_FILE"
     echo "report_path=$report_path"
     echo "summary_file=$SUMMARY_FILE"
-    [[ -n "$score" ]] && echo "score=$score"
+    echo "run_url=$run_url"
+    [[ -n "$extracted" ]] && echo "score=$extracted"
+    [[ -n "$extracted" ]] && echo "extracted_value=$extracted"
     echo "summary_markdown<<CEV_SUMMARY_EOF"
     echo "$summary_md"
     echo "CEV_SUMMARY_EOF"
@@ -30,7 +111,7 @@ write_outputs() {
 
   if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     {
-      echo "## CloudEval"
+      echo "## ${INPUT_JOB_SUMMARY_TITLE:-CloudEval}"
       echo ""
       echo "$summary_md"
     } >>"$GITHUB_STEP_SUMMARY"
@@ -50,6 +131,7 @@ summarize_fail() {
     echo "### CloudEval failed"
     echo ""
     echo "$msg"
+    append_run_metadata
   } >"$SUMMARY_FILE"
   stage_artifacts
   write_outputs fail "" ""
@@ -62,6 +144,9 @@ MODE="$(printf '%s' "$MODE_RAW" | tr '[:upper:]' '[:lower:]')"
 cd "${INPUT_WORKING_DIRECTORY:-.}"
 
 BASE_ARGS=(--non-interactive --format json)
+build_common_cli_flags
+BASE_ARGS+=("${COMMON_FLAGS[@]}")
+
 if [[ -n "${INPUT_BASE_URL:-}" ]]; then
   BASE_ARGS+=(--base-url "$INPUT_BASE_URL")
 fi
@@ -81,12 +166,14 @@ run_llm() {
   else
     cloudeval ask "$prompt" "${BASE_ARGS[@]}" | tee "$JSON_FILE"
   fi
+  validate_cli_json
 }
 
 download_reports() {
   local out_rel="$1"
   mkdir -p "$out_rel"
   local dl=(reports download --project "${INPUT_PROJECT_ID}" --type "${INPUT_REPORTS_TYPE:-all}" --output "$out_rel" --non-interactive --format json)
+  dl+=("${COMMON_FLAGS[@]}")
   if [[ -n "${INPUT_BASE_URL:-}" ]]; then
     dl+=(--base-url "$INPUT_BASE_URL")
   fi
@@ -95,7 +182,16 @@ download_reports() {
 
 run_reports_flow() {
   local title="$1"
-  cloudeval reports run --type "${INPUT_REPORTS_TYPE:-all}" "${BASE_ARGS[@]}" | tee "$JSON_FILE"
+  local run_args=(reports run --type "${INPUT_REPORTS_TYPE:-all}")
+  run_args+=(--region "${INPUT_REPORTS_REGION:-eastus}")
+  run_args+=(--currency "${INPUT_REPORTS_CURRENCY:-USD}")
+  if [[ "${INPUT_REPORTS_WAIT:-false}" == "true" ]]; then
+    run_args+=(--wait --poll-interval "${INPUT_REPORTS_POLL_INTERVAL_MS:-2500}")
+  fi
+  run_args+=("${BASE_ARGS[@]}")
+  cloudeval "${run_args[@]}" | tee "$JSON_FILE"
+  validate_cli_json
+
   local report_path_out=""
   if [[ "${INPUT_REPORTS_DOWNLOAD:-true}" == "true" ]]; then
     local out_rel="${INPUT_REPORTS_OUTPUT_DIR:-cloudeval-reports}"
@@ -108,9 +204,46 @@ run_reports_flow() {
     echo ""
     echo "- **Project:** \`${INPUT_PROJECT_ID}\`"
     echo "- **Type:** ${INPUT_REPORTS_TYPE:-all}"
+    echo "- **Region:** ${INPUT_REPORTS_REGION:-eastus} · **Currency:** ${INPUT_REPORTS_CURRENCY:-USD}"
+    if [[ "${INPUT_REPORTS_WAIT:-false}" == "true" ]]; then
+      echo "- **Wait for jobs:** yes (poll ${INPUT_REPORTS_POLL_INTERVAL_MS:-2500} ms)"
+    fi
+    append_answer_snippet
+    append_run_metadata
   } >"$SUMMARY_FILE"
   stage_artifacts
   write_outputs pass "" "$report_path_out"
+}
+
+gate_compare() {
+  local op_raw="$1"
+  local v="$2"
+  local t="$3"
+  local op
+  op="$(printf '%s' "$op_raw" | tr '[:upper:]' '[:lower:]')"
+  case "$op" in
+  ge | gte)
+    awk -v vv="$v" -v tt="$t" 'BEGIN { exit !(vv + 0 >= tt + 0) }'
+    ;;
+  gt)
+    awk -v vv="$v" -v tt="$t" 'BEGIN { exit !(vv + 0 > tt + 0) }'
+    ;;
+  le | lte)
+    awk -v vv="$v" -v tt="$t" 'BEGIN { exit !(vv + 0 <= tt + 0) }'
+    ;;
+  lt)
+    awk -v vv="$v" -v tt="$t" 'BEGIN { exit !(vv + 0 < tt + 0) }'
+    ;;
+  eq | =)
+    awk -v vv="$v" -v tt="$t" 'BEGIN { exit !(vv + 0 == tt + 0) }'
+    ;;
+  ne | !=)
+    awk -v vv="$v" -v tt="$t" 'BEGIN { exit !(vv + 0 != tt + 0) }'
+    ;;
+  *)
+    summarize_fail "unknown gate_operator: ${op_raw} (use ge, gt, le, lte, lt, eq, ne)"
+    ;;
+  esac
 }
 
 apply_gate_if_needed() {
@@ -124,17 +257,20 @@ apply_gate_if_needed() {
   local jq_expr="${INPUT_GATE_JQ:-.score}"
   local raw
   if ! raw="$(jq -e -r "(${jq_expr}) | tonumber" "$JSON_FILE" 2>/dev/null)"; then
-    summarize_fail "gate jq expression '${jq_expr}' did not produce a numeric value from cli json"
+    summarize_fail "gate_jq '${jq_expr}' did not yield a number in cli json"
   fi
 
   local score="$raw"
-  if awk -v v="$score" -v t="$threshold" 'BEGIN { exit !(v + 0 >= t + 0) }'; then
+  local op="${INPUT_GATE_OPERATOR:-ge}"
+  if gate_compare "$op" "$score" "$threshold"; then
     {
       echo "### CloudEval gate"
       echo ""
       echo "- **Extracted value:** ${score}"
-      echo "- **Threshold:** ${threshold}"
+      echo "- **Operator:** \`${op}\` vs **threshold:** ${threshold}"
       echo "- **Result:** pass"
+      append_answer_snippet
+      append_run_metadata
     } >"$SUMMARY_FILE"
     stage_artifacts
     write_outputs pass "$score" ""
@@ -145,7 +281,9 @@ apply_gate_if_needed() {
     echo "### CloudEval gate failed"
     echo ""
     echo "- **Extracted value:** ${score}"
-    echo "- **Minimum required:** ${threshold}"
+    echo "- **Operator:** \`${op}\` vs **threshold:** ${threshold}"
+    append_answer_snippet
+    append_run_metadata
   } >"$SUMMARY_FILE"
   stage_artifacts
   write_outputs fail "$score" ""
@@ -156,12 +294,12 @@ case "$MODE" in
 ask)
   if [[ "$USE_AGENT" == true ]]; then
     if [[ -z "${INPUT_AGENT_TASK:-}" ]]; then
-      summarize_fail "agent_task is required when using agent (agent_task set)"
+      summarize_fail "agent_task is required for agent mode"
     fi
     run_llm ""
   else
     if [[ -z "${INPUT_ASK_PROMPT:-}" ]]; then
-      summarize_fail "mode ask requires ask_prompt (or set agent_task for agent mode)"
+      summarize_fail "mode ask requires ask_prompt (or agent_task for agent)"
     fi
     run_llm "${INPUT_ASK_PROMPT}"
   fi
@@ -172,6 +310,8 @@ ask)
     echo "### CloudEval ask"
     echo ""
     echo "Completed successfully."
+    append_answer_snippet
+    append_run_metadata
   } >"$SUMMARY_FILE"
   stage_artifacts
   write_outputs pass "" ""
@@ -183,12 +323,12 @@ gate)
   fi
   if [[ "$USE_AGENT" == true ]]; then
     if [[ -z "${INPUT_AGENT_TASK:-}" ]]; then
-      summarize_fail "mode gate with agent requires agent_task"
+      summarize_fail "gate with agent requires agent_task"
     fi
     run_llm ""
   else
     if [[ -z "${INPUT_ASK_PROMPT:-}" ]]; then
-      summarize_fail "mode gate requires ask_prompt (or agent_task)"
+      summarize_fail "gate requires ask_prompt or agent_task"
     fi
     run_llm "${INPUT_ASK_PROMPT}"
   fi
@@ -208,6 +348,8 @@ agent)
     echo "### CloudEval agent"
     echo ""
     echo "Completed successfully."
+    append_answer_snippet
+    append_run_metadata
   } >"$SUMMARY_FILE"
   stage_artifacts
   write_outputs pass "" ""
@@ -226,12 +368,12 @@ nightly)
   else
     if [[ "$USE_AGENT" == true ]]; then
       if [[ -z "${INPUT_AGENT_TASK:-}" ]]; then
-        summarize_fail "nightly ask/agent requires agent_task when using agent"
+        summarize_fail "nightly requires agent_task when using agent"
       fi
       run_llm ""
     else
       if [[ -z "${INPUT_ASK_PROMPT:-}" ]]; then
-        summarize_fail "mode nightly without project_id requires ask_prompt or agent_task"
+        summarize_fail "nightly without project_id requires ask_prompt or agent_task"
       fi
       run_llm "${INPUT_ASK_PROMPT}"
     fi
@@ -242,6 +384,8 @@ nightly)
       echo "### CloudEval nightly (ask)"
       echo ""
       echo "Scheduled check completed."
+      append_answer_snippet
+      append_run_metadata
     } >"$SUMMARY_FILE"
     stage_artifacts
     write_outputs pass "" ""

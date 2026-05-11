@@ -24,3 +24,7 @@ The CLI sends `Authorization: Bearer <access_key>`. The API validates via `verif
 - `CLOUDEVAL_ACCESS_KEY` — preferred for automation.
 - `CLOUDEVAL_BASE_URL` — optional; matches action input `base_url`.
 - `CLOUDEVAL_API_KEY` — deprecated; migrate to `CLOUDEVAL_ACCESS_KEY`.
+
+## Action features (summary)
+
+The composite action maps the secret to `CLOUDEVAL_ACCESS_KEY`, supports **gate** with `gate_jq` + `gate_operator`, **reports** with optional **wait** + download, **PR comments** (same-repo PRs; forks may be restricted), and **artifacts** with retention. See the repository README and `action.yml` for the full input list.

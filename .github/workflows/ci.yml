@@ -9,7 +9,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Validate action.yml (yaml)
         run: ruby -e "require 'yaml'; YAML.load_file('action.yml')"
@@ -20,7 +20,7 @@ jobs:
   mock-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Stub cloudeval (json ask)
         run: |
@@ -29,12 +29,31 @@ jobs:
           chmod +x bin/cloudeval
           echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
 
-      - name: Composite action (gate)
+      - name: Composite action (gate ge)
         uses: ./
         with:
           access_key: cev_live_ak_01MOCKMOCKMOCKMOCK_mockkeyvalue
           skip_cli_install: "true"
+          include_run_metadata: "false"
           mode: gate
           ask_prompt: "stub"
           gate_threshold: "0.5"
           gate_jq: ".score"
+          gate_operator: ge
+
+      - name: Stub cloudeval (lower score)
+        run: |
+          echo $'#!/usr/bin/env bash\nfor a in "$@"; do\n  if [[ "$a" == "ask" ]]; then\n    echo \'{"score":0.2}\'\n    exit 0\n  fi\ndone\necho stub: unexpected args: "$*" >&2\nexit 1' > bin/cloudeval
+          chmod +x bin/cloudeval
+
+      - name: Composite action (gate lt pass)
+        uses: ./
+        with:
+          access_key: cev_live_ak_01MOCKMOCKMOCKMOCK_mockkeyvalue
+          skip_cli_install: "true"
+          include_run_metadata: "false"
+          mode: gate
+          ask_prompt: "stub"
+          gate_threshold: "0.5"
+          gate_jq: ".score"
+          gate_operator: lt

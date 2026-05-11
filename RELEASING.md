@@ -1,22 +1,26 @@
 # Releasing CloudEval Action
 
-## Version tags
+## Tags
 
-1. Merge changes to `main`.
-2. Tag a release: `v1.0.0` (immutable) and move floating `v1` to the same commit for Marketplace consumers using `@v1`.
-3. In GitHub **Releases**, publish the release and opt in to **Publish to Marketplace** if this repository is public and meets [GitHub’s action rules](https://docs.github.com/actions/creating-actions/publishing-actions-in-github-marketplace).
+1. Ensure `main` is green (CI on this repo).
+2. Create an **immutable** tag: `v1.2.3`.
+3. Move the floating tag **`v1`** to that commit for consumers using `@v1`.
+4. In GitHub **Releases**, publish the release and opt in to **Publish to Marketplace** when the repo is public and metadata is final.
 
-## Pre-flight
+## Marketplace
 
-- CI green on `main`.
-- `action.yml` `name:` is unique on the Marketplace (adjust at publish if needed).
-- Docs under `docs/` and `action.yml` should reference the real org/repo slug (default `ganakailabs/cloudeval-action`).
+- `action.yml` **`name:`** must be unique on the Marketplace (adjust at publish if GitHub rejects it).
+- README and SECURITY.md support review and trust signals.
+
+## Pinning dependencies
+
+Workflows in this repo pin third-party actions to **commit SHAs** (see `.github/workflows/*.yml`). Dependabot opens weekly PRs to bump them; review release notes before merge.
 
 ## Consumer pinning
 
-- Recommend `uses: <org>/cloudeval-action@v1` for automatic minor updates, or `@v1.x.y` for strict pins.
-- Reusable workflow callers should pass `action_ref` when they need an exact SHA.
+- Recommend `uses: ganakailabs/cloudeval-action@v1` for semver-style updates, or `@v1.x.y` / full SHA for strict supply-chain control.
+- Reusable workflow callers can set `action_ref` to a SHA.
 
 ## Smoke (optional)
 
-In a throwaway repo, add a workflow with `CLOUDEVAL_ACCESS_KEY` secret and run `mode: ask` with a minimal prompt; confirm job summary and exit 0.
+In a private test repo, run `mode: ask` with a real `CLOUDEVAL_ACCESS_KEY` and verify job summary + exit 0.
