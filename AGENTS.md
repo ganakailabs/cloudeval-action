@@ -7,3 +7,4 @@
 - Reusable workflow must pin `uses: ${{ inputs.action_repository }}@${{ inputs.action_ref }}` — never `uses: ./` for the action step when called from another repo.
 - Pin third-party actions by SHA in workflows; let Dependabot propose bumps.
 - Install step: `curl` retries + timeout; override with `skip_cli_install` for vetted binaries.
+- Branding: product PNGs live under `media/` (synced from cloudeval-frontend); `action.yml` `branding.icon` must stay a supported Feather name (currently `cloud`).

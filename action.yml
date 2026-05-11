@@ -1,7 +1,9 @@
-name: CloudEval Action
+name: CloudEval
 description: Run CloudEval CLI in GitHub Actions with scoped access keys, gating, reports, PR feedback, and artifacts.
 author: CloudEval
 
+# Marketplace badge: GitHub only allows Feather icon names here (not PNG/SVG).
+# Product artwork lives in media/ — abstract cloud from cloudeval-frontend (see media/README.md).
 branding:
   icon: cloud
   color: blue

@@ -1,6 +1,12 @@
 # CloudEval GitHub Action
 
+<p align="center">
+  <img src="media/logo-abstract-cloud-256.png" alt="CloudEval" width="128" height="128" />
+</p>
+
 Composite action that installs the [CloudEval CLI](https://github.com/ganakailabs/cloudeval-cli) and runs **ask**, **agent**, **reports**, **merge gating**, **nightly** flows, with **job summaries**, **PR comments**, and **artifacts**.
+
+The image above is the same **abstract cloud** mark as in the web app ([`app/layout.tsx` OpenGraph](https://github.com/ganakailabs/cloudeval-frontend/blob/main/app/layout.tsx) uses `/common/logo-abstract-cloud-dark-v3.png`). The GitHub Marketplace badge still uses GitHub’s **Feather `cloud`** icon because [custom images are not supported](https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#branding) in `action.yml` `branding`.
 
 Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)).
 
