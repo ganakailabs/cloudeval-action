@@ -10,7 +10,7 @@
 
 - CI green on `main`.
 - `action.yml` `name:` is unique on the Marketplace (adjust at publish if needed).
-- README examples use the real org/repo slug (default `ganakailabs/cloudeval-action`).
+- Docs under `docs/` and `action.yml` should reference the real org/repo slug (default `ganakailabs/cloudeval-action`).
 
 ## Consumer pinning
 
