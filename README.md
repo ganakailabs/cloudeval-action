@@ -10,6 +10,8 @@ The image above is the same **abstract cloud** mark as in the web app ([`app/lay
 
 Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)).
 
+**Full guide (modes, gating, repo behavior, every input family):** [docs/github-action.md](docs/github-action.md)
+
 ## Quick start
 
 ```yaml
@@ -75,6 +77,7 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 
 ## Documentation
 
+- [GitHub Action — full guide](docs/github-action.md) (how it affects repos, modes, configuration)
 - [Access keys in CI](docs/ci-access-keys.md)
 - [Releasing & Marketplace](RELEASING.md)
 - [Security](SECURITY.md)
