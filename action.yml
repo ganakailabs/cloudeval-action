@@ -1,4 +1,4 @@
-name: CloudEval
+name: Cloudeval
 description: Run CloudEval CLI in GitHub Actions with scoped access keys, gating, reports, PR feedback, and artifacts.
 author: CloudEval
 
