@@ -18,6 +18,7 @@ Authentication uses a **scoped access key** (`cev_…`). Create keys in the app:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   review:
@@ -40,12 +41,12 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | Area | What you get |
 |------|----------------|
 | **Modes** | `review`, `ask`, `agent`, `gate`, `reports`, `nightly` (reports if `project_id` set, else ask/agent). |
-| **Review** | Runs `cloudeval review`, syncs the pushed commit for GitHub-backed projects, evaluates `.cloudeval/config.yaml` `ci.gates`, and writes `review.json` / `review.md`. |
+| **Review** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, includes an AI summary, and writes `review.json` / `review.md`. |
 | **Gating** | `review` uses config gates; prompt-based `gate` uses `gate_jq`, `gate_operator`, and `gate_threshold`. |
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
-| **PR feedback** | One idempotent comment (`<!-- cloudeval-action -->`), collapsible details, optional JSON excerpt, run metadata + link. |
+| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished) and writes one idempotent result comment (`<!-- cloudeval-action -->`) with collapsible details, optional JSON excerpt, run metadata + link. |
 | **Artifacts** | Staged JSON, summary, and downloaded reports with configurable **retention-days**. |
 | **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `run_url`. |
 | **Reusable workflow** | [cloudeval-reusable.yml](.github/workflows/cloudeval-reusable.yml) forwards secrets and inputs; set `action_repository` / `action_ref` if you fork. |
@@ -58,7 +59,7 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 
 - **`access_key`** (required) — `secrets.CLOUDEVAL_ACCESS_KEY`
 - **`mode`**, **`project_id`**, **`ask_prompt`**, **`agent_task`**
-- **`repo`**, **`ref`**, **`commit_sha`**, **`source_root`**, **`config_path`**, **`ignore_dirty`**, **`review_output_dir`** for `mode: review`
+- **`repo`**, **`ref`**, **`commit_sha`**, **`source_root`**, **`config_path`**, **`ignore_dirty`**, **`review_wait`**, **`review_wait_timeout_ms`**, **`review_poll_interval_ms`**, **`ai_summary`**, **`review_output_dir`** for `mode: review`
 - **`gate_threshold`**, **`gate_jq`**, **`gate_operator`**
 - **`summary_answer_jq`** — e.g. `.reason` or `.answer` for human-readable summary text
 - **`reports_*`**, **`quiet`**, **`progress`**, **`model`**, **`profile`**
@@ -68,7 +69,7 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 
 ## Requirements
 
-- Ubuntu runners (or compatible) with `bash`, `curl`, `jq`, `gh` (for PR comments).
+- Ubuntu runners (or compatible) with `bash`, `curl`, `jq`, `gh` (for PR comments and reactions).
 - Valid CloudEval access key with capabilities for the operations you run.
 - For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
 
