@@ -264,6 +264,12 @@ run_review_flow() {
   if [[ "${INPUT_AI_SUMMARY:-true}" != "true" ]]; then
     review_args+=(--no-ai-summary)
   fi
+  if [[ -n "${INPUT_AI_SUMMARY_MODE:-}" ]]; then
+    review_args+=(--ai-summary-mode "$INPUT_AI_SUMMARY_MODE")
+  fi
+  if [[ -n "${INPUT_AI_SUMMARY_PROFILE:-}" ]]; then
+    review_args+=(--ai-summary-profile "$INPUT_AI_SUMMARY_PROFILE")
+  fi
 
   local status=0
   cloudeval "${review_args[@]}" | tee "$JSON_FILE" || status=$?
