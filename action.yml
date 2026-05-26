@@ -17,7 +17,7 @@ inputs:
     required: false
     default: ""
   mode:
-    description: "Execution mode — ask, gate, agent, reports, or nightly."
+    description: "Execution mode — review, ask, gate, agent, reports, or nightly."
     required: false
     default: ask
   project_id:
@@ -92,6 +92,34 @@ inputs:
     description: Output directory for reports download.
     required: false
     default: cloudeval-reports
+  repo:
+    description: GitHub repository for review mode. Defaults to github.repository.
+    required: false
+    default: ""
+  ref:
+    description: Git branch/ref for review mode. Defaults to github.ref_name.
+    required: false
+    default: ""
+  commit_sha:
+    description: Commit SHA for review mode. Defaults to github.sha.
+    required: false
+    default: ""
+  source_root:
+    description: Optional IaC source root for GitHub-backed CloudEval projects.
+    required: false
+    default: ""
+  config_path:
+    description: Optional path to .cloudeval/config.yaml for review gates.
+    required: false
+    default: ""
+  ignore_dirty:
+    description: Pass --ignore-dirty to cloudeval review.
+    required: false
+    default: "false"
+  review_output_dir:
+    description: Output directory for review.json and review.md.
+    required: false
+    default: cloudeval-review
   working_directory:
     description: Working directory for CLI.
     required: false
@@ -204,6 +232,13 @@ runs:
         INPUT_REPORTS_POLL_INTERVAL_MS: ${{ inputs.reports_poll_interval_ms }}
         INPUT_REPORTS_DOWNLOAD: ${{ inputs.reports_download }}
         INPUT_REPORTS_OUTPUT_DIR: ${{ inputs.reports_output_dir }}
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_REF: ${{ inputs.ref }}
+        INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
+        INPUT_SOURCE_ROOT: ${{ inputs.source_root }}
+        INPUT_CONFIG_PATH: ${{ inputs.config_path }}
+        INPUT_IGNORE_DIRTY: ${{ inputs.ignore_dirty }}
+        INPUT_REVIEW_OUTPUT_DIR: ${{ inputs.review_output_dir }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
         INPUT_INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}
         INPUT_JOB_SUMMARY_TITLE: ${{ inputs.job_summary_title }}
@@ -212,6 +247,7 @@ runs:
         GITHUB_RUN_ID: ${{ github.run_id }}
         GITHUB_SHA: ${{ github.sha }}
         GITHUB_REF: ${{ github.ref }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
         GITHUB_WORKFLOW: ${{ github.workflow }}
       run: bash "${{ github.action_path }}/scripts/run.sh"
 

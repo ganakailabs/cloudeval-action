@@ -4,7 +4,7 @@
   <img src="media/logo-abstract-cloud-256.png" alt="CloudEval" width="128" height="128" />
 </p>
 
-Composite action that installs the [CloudEval CLI](https://github.com/ganakailabs/cloudeval-cli) and runs **ask**, **agent**, **reports**, **merge gating**, **nightly** flows, with **job summaries**, **PR comments**, and **artifacts**.
+Composite action that installs the [CloudEval CLI](https://github.com/ganakailabs/cloudeval-cli) and runs **review**, **ask**, **agent**, **reports**, **merge gating**, and **nightly** flows, with **job summaries**, **PR comments**, and **artifacts**.
 
 The image above is the same **abstract cloud** mark as in the web app ([`app/layout.tsx` OpenGraph](https://github.com/ganakailabs/cloudeval-frontend/blob/main/app/layout.tsx) uses `/common/logo-abstract-cloud-dark-v3.png`). The GitHub Marketplace badge still uses GitHub’s **Feather `cloud`** icon because [custom images are not supported](https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#branding) in `action.yml` `branding`.
 
@@ -20,7 +20,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  eval:
+  review:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -28,12 +28,7 @@ jobs:
         with:
           access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
           project_id: ${{ secrets.CLOUDEVAL_PROJECT_ID }}
-          mode: gate
-          ask_prompt: 'Return JSON only: {"score": <0-1>, "reason": "..."} evaluating IaC risk for this repo.'
-          gate_threshold: '0.7'
-          gate_jq: '.score'
-          gate_operator: ge
-          summary_answer_jq: '.reason // .answer // empty'
+          mode: review
           post_pr_comment: true
           upload_artifacts: true
 ```
@@ -44,8 +39,9 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 
 | Area | What you get |
 |------|----------------|
-| **Modes** | `ask`, `agent`, `gate`, `reports`, `nightly` (reports if `project_id` set, else ask/agent). |
-| **Gating** | `gate_jq` extracts a number; `gate_operator` one of `ge`, `gt`, `le`, `lte`, `lt`, `eq`, `ne`; fail job on mismatch. |
+| **Modes** | `review`, `ask`, `agent`, `gate`, `reports`, `nightly` (reports if `project_id` set, else ask/agent). |
+| **Review** | Runs `cloudeval review`, syncs the pushed commit for GitHub-backed projects, evaluates `.cloudeval/config.yaml` `ci.gates`, and writes `review.json` / `review.md`. |
+| **Gating** | `review` uses config gates; prompt-based `gate` uses `gate_jq`, `gate_operator`, and `gate_threshold`. |
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
@@ -62,6 +58,7 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 
 - **`access_key`** (required) — `secrets.CLOUDEVAL_ACCESS_KEY`
 - **`mode`**, **`project_id`**, **`ask_prompt`**, **`agent_task`**
+- **`repo`**, **`ref`**, **`commit_sha`**, **`source_root`**, **`config_path`**, **`ignore_dirty`**, **`review_output_dir`** for `mode: review`
 - **`gate_threshold`**, **`gate_jq`**, **`gate_operator`**
 - **`summary_answer_jq`** — e.g. `.reason` or `.answer` for human-readable summary text
 - **`reports_*`**, **`quiet`**, **`progress`**, **`model`**, **`profile`**

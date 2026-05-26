@@ -13,7 +13,7 @@ The action **does not** push commits, change branch protection, or modify reposi
 3. **Calls the CloudEval API** using that key — the same backend as the web app and CLI. Operations are limited by the key’s **capabilities**, **project scope**, **IP allowlist**, and **budgets** (see [ci-access-keys.md](ci-access-keys.md)).
 4. **Optionally** posts a **single PR comment** (updated in place) and/or uploads **workflow artifacts** (JSON summary, downloaded reports).
 
-Checked-out **repository files** are only relevant if your workflow (or a later step) uses them — for example you might `actions/checkout` and pass template paths into a **custom** job that runs before this action, or use `working_directory` so relative paths in prompts refer to your tree. The action itself does not scan the repo unless you combine it with other steps or put file paths inside `ask_prompt` / `agent_task`.
+For `mode: review`, checked-out **repository files** are used to identify the repository, branch, commit SHA, and dirty working tree state. Other modes only use checked-out files if your prompt or custom steps reference them.
 
 **Important:** Merge gating is **workflow-level**: a failing job blocks merge only if your branch rules require that check. The action exits **non-zero** when a gate fails or the CLI errors.
 
@@ -29,6 +29,7 @@ Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 
 | Mode | Behavior |
 |------|----------|
+| **`review`** | Runs `cloudeval review`, syncs the pushed commit for a GitHub-backed CloudEval project, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md`, and exits non-zero on explicit gate failure. |
 | **`ask`** | Runs `cloudeval ask` with `ask_prompt` (JSON to stdout). If `agent_task` is set, runs `cloudeval agent` instead. Optional gating if `gate_threshold` is set. |
 | **`gate`** | Same as ask/agent, then **fails the job** unless the numeric value from `gate_jq` satisfies `gate_operator` vs `gate_threshold`. |
 | **`agent`** | Runs `cloudeval agent` with `agent_task` (requires `agent_task`). Optional gating. |
@@ -36,6 +37,60 @@ Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 | **`nightly`** | If `project_id` is set: same as **reports**. Otherwise: ask/agent path (for scheduled smoke or policy strings) with optional gating. |
 
 All LLM-facing modes use **`--format json`** and **`--non-interactive`**.
+
+## Review mode
+
+Use review mode for pull requests after the repository is already linked to a CloudEval GitHub App project:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  pull_request:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ganakailabs/cloudeval-action@v1
+        with:
+          access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
+          project_id: ${{ secrets.CLOUDEVAL_PROJECT_ID }}
+          mode: review
+          post_pr_comment: true
+          upload_artifacts: true
+```
+
+Defaults:
+
+- `repo`: `github.repository`
+- `ref`: `github.ref_name`
+- `commit_sha`: `github.sha`
+- `review_output_dir`: `cloudeval-review`
+
+The CLI blocks dirty worktrees before calling CloudEval:
+
+```text
+Reviews pushed commits only. Add --ignore-dirty to review HEAD anyway.
+```
+
+Set `ignore_dirty: "true"` only if the workflow intentionally generates local files before review.
+
+Example gates:
+
+```yaml
+# .cloudeval/config.yaml
+ci:
+  gates:
+    overall_score_min: 85
+    fail_on_high_risk: true
+    max_monthly_cost: 500
+```
+
+If `ci.gates` is missing, review mode reports a warning rather than failing by default.
 
 ## Gating (`gate_*`)
 

@@ -35,6 +35,7 @@ append_run_metadata() {
     [[ -n "${GITHUB_REF:-}" ]] && echo "| **Ref** | \`${GITHUB_REF}\` |"
     [[ -n "${GITHUB_SHA:-}" ]] && echo "| **SHA** | \`${GITHUB_SHA:0:7}\` |"
   }
+  return 0
 }
 
 append_answer_snippet() {
@@ -215,6 +216,78 @@ run_reports_flow() {
   write_outputs pass "" "$report_path_out"
 }
 
+json_string() {
+  local expr="$1"
+  [[ ! -f "$JSON_FILE" ]] && return 1
+  command -v jq >/dev/null 2>&1 || return 1
+  jq -r "$expr // empty" "$JSON_FILE" 2>/dev/null
+}
+
+run_review_flow() {
+  local out_rel="${INPUT_REVIEW_OUTPUT_DIR:-cloudeval-review}"
+  local review_args=(review)
+  review_args+=("${BASE_ARGS[@]}")
+  review_args+=(--output "$out_rel")
+  if [[ -n "${INPUT_REPO:-}" ]]; then
+    review_args+=(--repo "$INPUT_REPO")
+  elif [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
+    review_args+=(--repo "$GITHUB_REPOSITORY")
+  fi
+  if [[ -n "${INPUT_REF:-}" ]]; then
+    review_args+=(--ref "$INPUT_REF")
+  elif [[ -n "${GITHUB_REF_NAME:-}" ]]; then
+    review_args+=(--ref "$GITHUB_REF_NAME")
+  fi
+  if [[ -n "${INPUT_COMMIT_SHA:-}" ]]; then
+    review_args+=(--commit-sha "$INPUT_COMMIT_SHA")
+  elif [[ -n "${GITHUB_SHA:-}" ]]; then
+    review_args+=(--commit-sha "$GITHUB_SHA")
+  fi
+  if [[ -n "${INPUT_SOURCE_ROOT:-}" ]]; then
+    review_args+=(--source-root "$INPUT_SOURCE_ROOT")
+  fi
+  if [[ -n "${INPUT_CONFIG_PATH:-}" ]]; then
+    review_args+=(--config "$INPUT_CONFIG_PATH")
+  fi
+  if [[ "${INPUT_IGNORE_DIRTY:-false}" == "true" ]]; then
+    review_args+=(--ignore-dirty)
+  fi
+
+  local status=0
+  cloudeval "${review_args[@]}" | tee "$JSON_FILE" || status=$?
+  if [[ ! -s "$JSON_FILE" ]]; then
+    summarize_fail "cloudeval review produced no stdout json. Check auth, project_id, GitHub repo linkage, and dirty working tree status."
+  fi
+  validate_cli_json
+
+  if [[ -f "$out_rel/review.md" ]]; then
+    cp "$out_rel/review.md" "$SUMMARY_FILE"
+  else
+    local summary
+    summary="$(json_string '.data.summaryMarkdown' || true)"
+    {
+      echo "### CloudEval review"
+      echo ""
+      if [[ -n "$summary" ]]; then
+        echo "$summary"
+      else
+        echo "Review completed."
+      fi
+    } >"$SUMMARY_FILE"
+  fi
+  append_run_metadata >>"$SUMMARY_FILE"
+  cp -r "$out_rel" "$ARTIFACT_DIR/review" 2>/dev/null || true
+  stage_artifacts
+  local extracted
+  extracted="$(json_string '.data.gate.overallScore' || true)"
+  if [[ "$status" -eq 0 ]]; then
+    write_outputs pass "$extracted" ""
+    exit 0
+  fi
+  write_outputs fail "$extracted" ""
+  exit "$status"
+}
+
 gate_compare() {
   local op_raw="$1"
   local v="$2"
@@ -362,6 +435,10 @@ reports)
   run_reports_flow "CloudEval reports"
   ;;
 
+review)
+  run_review_flow
+  ;;
+
 nightly)
   if [[ -n "${INPUT_PROJECT_ID:-}" ]]; then
     run_reports_flow "CloudEval nightly (reports)"
@@ -393,6 +470,6 @@ nightly)
   ;;
 
 *)
-  summarize_fail "unknown mode: ${MODE_RAW} (use ask, gate, agent, reports, nightly)"
+  summarize_fail "unknown mode: ${MODE_RAW} (use review, ask, gate, agent, reports, nightly)"
   ;;
 esac
