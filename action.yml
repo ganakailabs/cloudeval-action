@@ -116,6 +116,22 @@ inputs:
     description: Pass --ignore-dirty to cloudeval review.
     required: false
     default: "false"
+  review_wait:
+    description: Wait for GitHub sync and report refresh before writing review output.
+    required: false
+    default: "true"
+  review_wait_timeout_ms:
+    description: Maximum time cloudeval review waits for GitHub sync.
+    required: false
+    default: "900000"
+  review_poll_interval_ms:
+    description: Poll interval for cloudeval review while waiting.
+    required: false
+    default: "5000"
+  ai_summary:
+    description: Include an AI-written summary in review.json, review.md, and PR comments.
+    required: false
+    default: "true"
   review_output_dir:
     description: Output directory for review.json and review.md.
     required: false
@@ -207,6 +223,16 @@ runs:
           "${{ inputs.cli_install_url }}" | bash
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+    - name: PR reaction started
+      if: inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        RESULT: running
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: bash "${{ github.action_path }}/scripts/pr-reaction.sh"
+
     - name: Run CloudEval
       id: run
       shell: bash
@@ -238,6 +264,10 @@ runs:
         INPUT_SOURCE_ROOT: ${{ inputs.source_root }}
         INPUT_CONFIG_PATH: ${{ inputs.config_path }}
         INPUT_IGNORE_DIRTY: ${{ inputs.ignore_dirty }}
+        INPUT_REVIEW_WAIT: ${{ inputs.review_wait }}
+        INPUT_REVIEW_WAIT_TIMEOUT_MS: ${{ inputs.review_wait_timeout_ms }}
+        INPUT_REVIEW_POLL_INTERVAL_MS: ${{ inputs.review_poll_interval_ms }}
+        INPUT_AI_SUMMARY: ${{ inputs.ai_summary }}
         INPUT_REVIEW_OUTPUT_DIR: ${{ inputs.review_output_dir }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
         INPUT_INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}
@@ -260,7 +290,7 @@ runs:
         retention-days: ${{ inputs.artifact_retention_days }}
 
     - name: PR comment
-      if: inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
+      if: always() && inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -280,3 +310,13 @@ runs:
         PR_COMMENT_MAX_JSON_CHARS: ${{ inputs.pr_comment_max_json_chars }}
         INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}
       run: bash "${{ github.action_path }}/scripts/pr-comment.sh"
+
+    - name: PR reaction completed
+      if: always() && inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        RESULT: ${{ steps.run.outputs.result }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: bash "${{ github.action_path }}/scripts/pr-reaction.sh"

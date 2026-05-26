@@ -252,6 +252,18 @@ run_review_flow() {
   if [[ "${INPUT_IGNORE_DIRTY:-false}" == "true" ]]; then
     review_args+=(--ignore-dirty)
   fi
+  if [[ "${INPUT_REVIEW_WAIT:-true}" != "true" ]]; then
+    review_args+=(--no-wait)
+  fi
+  if [[ -n "${INPUT_REVIEW_WAIT_TIMEOUT_MS:-}" ]]; then
+    review_args+=(--wait-timeout "$INPUT_REVIEW_WAIT_TIMEOUT_MS")
+  fi
+  if [[ -n "${INPUT_REVIEW_POLL_INTERVAL_MS:-}" ]]; then
+    review_args+=(--poll-interval "$INPUT_REVIEW_POLL_INTERVAL_MS")
+  fi
+  if [[ "${INPUT_AI_SUMMARY:-true}" != "true" ]]; then
+    review_args+=(--no-ai-summary)
+  fi
 
   local status=0
   cloudeval "${review_args[@]}" | tee "$JSON_FILE" || status=$?

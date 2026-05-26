@@ -11,7 +11,7 @@ The action **does not** push commits, change branch protection, or modify reposi
 1. **Runs on GitHub-hosted (or self-hosted) runners** inside a workflow you define in **your** repo.
 2. **Installs the CloudEval CLI** (unless `skip_cli_install` is true) and invokes `cloudeval` with your **scoped access key**.
 3. **Calls the CloudEval API** using that key — the same backend as the web app and CLI. Operations are limited by the key’s **capabilities**, **project scope**, **IP allowlist**, and **budgets** (see [ci-access-keys.md](ci-access-keys.md)).
-4. **Optionally** posts a **single PR comment** (updated in place) and/or uploads **workflow artifacts** (JSON summary, downloaded reports).
+4. **Optionally** adds PR reactions for review lifecycle, posts a **single result comment** (updated in place), and/or uploads **workflow artifacts** (JSON summary, downloaded reports).
 
 For `mode: review`, checked-out **repository files** are used to identify the repository, branch, commit SHA, and dirty working tree state. Other modes only use checked-out files if your prompt or custom steps reference them.
 
@@ -29,7 +29,7 @@ Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 
 | Mode | Behavior |
 |------|----------|
-| **`review`** | Runs `cloudeval review`, syncs the pushed commit for a GitHub-backed CloudEval project, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md`, and exits non-zero on explicit gate failure. |
+| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with an AI summary, and exits non-zero on explicit gate failure. |
 | **`ask`** | Runs `cloudeval ask` with `ask_prompt` (JSON to stdout). If `agent_task` is set, runs `cloudeval agent` instead. Optional gating if `gate_threshold` is set. |
 | **`gate`** | Same as ask/agent, then **fails the job** unless the numeric value from `gate_jq` satisfies `gate_operator` vs `gate_threshold`. |
 | **`agent`** | Runs `cloudeval agent` with `agent_task` (requires `agent_task`). Optional gating. |
@@ -46,6 +46,7 @@ Use review mode for pull requests after the repository is already linked to a Cl
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 on:
   pull_request:
@@ -70,6 +71,10 @@ Defaults:
 - `ref`: `github.ref_name`
 - `commit_sha`: `github.sha`
 - `review_output_dir`: `cloudeval-review`
+- `review_wait`: `true`; set `false` only if you want `cloudeval review --no-wait`
+- `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments
+- `review_wait_timeout_ms`: `900000`
+- `review_poll_interval_ms`: `5000`
 
 The CLI blocks dirty worktrees before calling CloudEval:
 
@@ -78,6 +83,8 @@ Reviews pushed commits only. Add --ignore-dirty to review HEAD anyway.
 ```
 
 Set `ignore_dirty: "true"` only if the workflow intentionally generates local files before review.
+
+When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). The review itself is written as one idempotent PR comment after the run has result data.
 
 Example gates:
 
@@ -121,7 +128,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 - **`include_run_metadata`**: adds workflow run link, ref, SHA to markdown.
 - **`summary_answer_jq`**: optional jq on stdout JSON to embed a short excerpt (e.g. `.reason`) in the job summary / gate summary.
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
-- **`post_pr_comment`**: when `true` and event is `pull_request`, updates one **github-actions[bot]** comment (marker `<!-- cloudeval-action -->`). Requires `permissions: pull-requests: write`. **Fork PRs** often cannot post comments due to token restrictions.
+- **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one **github-actions[bot]** result comment (marker `<!-- cloudeval-action -->`). Requires `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
 - **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix.
 
 ## Artifacts

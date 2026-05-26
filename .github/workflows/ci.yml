@@ -15,7 +15,7 @@ jobs:
         run: ruby -e "require 'yaml'; YAML.load_file('action.yml')"
 
       - name: Bash syntax
-        run: bash -n scripts/run.sh && bash -n scripts/pr-comment.sh
+        run: bash -n scripts/run.sh && bash -n scripts/pr-comment.sh && bash -n scripts/pr-reaction.sh
 
   mock-gate:
     runs-on: ubuntu-latest
