@@ -14,16 +14,6 @@ on:
         description: Scoped CloudEval access key (cev_…)
         required: true
     inputs:
-      action_repository:
-        description: Action repo owner/name (override if you fork)
-        type: string
-        required: false
-        default: ganakailabs/cloudeval-action
-      action_ref:
-        description: Tag or SHA (e.g. v1)
-        type: string
-        required: false
-        default: v1
       mode:
         type: string
         required: false
@@ -104,6 +94,62 @@ on:
         type: string
         required: false
         default: cloudeval-reports
+      repo:
+        type: string
+        required: false
+        default: ""
+      ref:
+        type: string
+        required: false
+        default: ""
+      commit_sha:
+        type: string
+        required: false
+        default: ""
+      source_root:
+        type: string
+        required: false
+        default: ""
+      config_path:
+        type: string
+        required: false
+        default: ""
+      ignore_dirty:
+        type: boolean
+        required: false
+        default: false
+      review_wait:
+        type: boolean
+        required: false
+        default: true
+      review_wait_timeout_ms:
+        type: string
+        required: false
+        default: "900000"
+      review_poll_interval_ms:
+        type: string
+        required: false
+        default: "5000"
+      ai_summary:
+        type: boolean
+        required: false
+        default: true
+      ai_summary_mode:
+        type: string
+        required: false
+        default: ask
+      ai_summary_profile:
+        type: string
+        required: false
+        default: architecture
+      review_output_dir:
+        type: string
+        required: false
+        default: cloudeval-review
+      working_directory:
+        type: string
+        required: false
+        default: .
       post_pr_comment:
         type: boolean
         required: false
@@ -116,6 +162,10 @@ on:
         type: boolean
         required: false
         default: false
+      pr_comment_max_json_chars:
+        type: string
+        required: false
+        default: "12000"
       upload_artifacts:
         type: boolean
         required: false
@@ -148,7 +198,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: CloudEval
-        uses: ${{ inputs.action_repository }}@${{ inputs.action_ref }}
+        uses: ganakailabs/cloudeval-action@v1
         with:
           access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
           base_url: ${{ inputs.base_url }}
@@ -171,9 +221,24 @@ jobs:
           reports_poll_interval_ms: ${{ inputs.reports_poll_interval_ms }}
           reports_download: ${{ inputs.reports_download }}
           reports_output_dir: ${{ inputs.reports_output_dir }}
+          repo: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
+          commit_sha: ${{ inputs.commit_sha }}
+          source_root: ${{ inputs.source_root }}
+          config_path: ${{ inputs.config_path }}
+          ignore_dirty: ${{ inputs.ignore_dirty }}
+          review_wait: ${{ inputs.review_wait }}
+          review_wait_timeout_ms: ${{ inputs.review_wait_timeout_ms }}
+          review_poll_interval_ms: ${{ inputs.review_poll_interval_ms }}
+          ai_summary: ${{ inputs.ai_summary }}
+          ai_summary_mode: ${{ inputs.ai_summary_mode }}
+          ai_summary_profile: ${{ inputs.ai_summary_profile }}
+          review_output_dir: ${{ inputs.review_output_dir }}
+          working_directory: ${{ inputs.working_directory }}
           post_pr_comment: ${{ inputs.post_pr_comment }}
           pr_comment_collapsed_details: ${{ inputs.pr_comment_collapsed_details }}
           pr_comment_json_excerpt: ${{ inputs.pr_comment_json_excerpt }}
+          pr_comment_max_json_chars: ${{ inputs.pr_comment_max_json_chars }}
           upload_artifacts: ${{ inputs.upload_artifacts }}
           artifact_name: ${{ inputs.artifact_name }}
           artifact_retention_days: ${{ inputs.artifact_retention_days }}

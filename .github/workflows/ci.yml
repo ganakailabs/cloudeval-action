@@ -68,6 +68,7 @@ jobs:
           mkdir -p bin
           cat > bin/cloudeval <<'EOF'
           #!/usr/bin/env bash
+          printf '%s\n' "$*" > "${RUNNER_TEMP:-/tmp}/cloudeval-args.txt"
           outdir="cloudeval-review"
           while [[ $# -gt 0 ]]; do
             case "$1" in
@@ -98,3 +99,10 @@ jobs:
           repo: ganakailabs/example
           ref: main
           commit_sha: abc123
+          ai_summary_mode: agent
+          ai_summary_profile: architecture
+
+      - name: Assert review summary mode forwarding
+        run: |
+          grep -- '--ai-summary-mode agent' "$RUNNER_TEMP/cloudeval-args.txt"
+          grep -- '--ai-summary-profile architecture' "$RUNNER_TEMP/cloudeval-args.txt"

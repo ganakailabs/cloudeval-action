@@ -132,6 +132,14 @@ inputs:
     description: Include an AI-written summary in review.json, review.md, and PR comments.
     required: false
     default: "true"
+  ai_summary_mode:
+    description: AI summary mode for review output — ask or agent.
+    required: false
+    default: ask
+  ai_summary_profile:
+    description: Agent Profile id when ai_summary_mode is agent.
+    required: false
+    default: architecture
   review_output_dir:
     description: Output directory for review.json and review.md.
     required: false
@@ -268,6 +276,8 @@ runs:
         INPUT_REVIEW_WAIT_TIMEOUT_MS: ${{ inputs.review_wait_timeout_ms }}
         INPUT_REVIEW_POLL_INTERVAL_MS: ${{ inputs.review_poll_interval_ms }}
         INPUT_AI_SUMMARY: ${{ inputs.ai_summary }}
+        INPUT_AI_SUMMARY_MODE: ${{ inputs.ai_summary_mode }}
+        INPUT_AI_SUMMARY_PROFILE: ${{ inputs.ai_summary_profile }}
         INPUT_REVIEW_OUTPUT_DIR: ${{ inputs.review_output_dir }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
         INPUT_INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}

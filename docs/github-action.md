@@ -29,7 +29,7 @@ Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 
 | Mode | Behavior |
 |------|----------|
-| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with an AI summary, and exits non-zero on explicit gate failure. |
+| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with WAF/cost/validation drill-downs plus an AI summary, and exits non-zero on explicit gate failure. |
 | **`ask`** | Runs `cloudeval ask` with `ask_prompt` (JSON to stdout). If `agent_task` is set, runs `cloudeval agent` instead. Optional gating if `gate_threshold` is set. |
 | **`gate`** | Same as ask/agent, then **fails the job** unless the numeric value from `gate_jq` satisfies `gate_operator` vs `gate_threshold`. |
 | **`agent`** | Runs `cloudeval agent` with `agent_task` (requires `agent_task`). Optional gating. |
@@ -73,6 +73,8 @@ Defaults:
 - `review_output_dir`: `cloudeval-review`
 - `review_wait`: `true`; set `false` only if you want `cloudeval review --no-wait`
 - `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments
+- `ai_summary_mode`: `ask` by default; set `agent` to generate the narrative summary through an Agent Profile
+- `ai_summary_profile`: `architecture` by default when `ai_summary_mode: agent`
 - `review_wait_timeout_ms`: `900000`
 - `review_poll_interval_ms`: `5000`
 
@@ -92,12 +94,20 @@ Example gates:
 # .cloudeval/config.yaml
 ci:
   gates:
+    enforcement: required
     overall_score_min: 85
+    pillar_score_min: 80
+    pillars:
+      security: 90
+      reliability: 85
     fail_on_high_risk: true
+    fail_on_validation_errors: true
     max_monthly_cost: 500
 ```
 
-If `ci.gates` is missing, review mode reports a warning rather than failing by default.
+If `ci.gates` is missing, review mode reports a warning rather than failing by default. If gates are present, `enforcement: required` fails the job on gate failures. Use `enforcement: warn` when you want full review output without blocking merges yet.
+
+To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
 
 ## Gating (`gate_*`)
 
@@ -150,7 +160,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 
 ## Reusable workflow
 
-This repo ships [`.github/workflows/cloudeval-reusable.yml`](../.github/workflows/cloudeval-reusable.yml). Call it from another repository with `workflow_call`, pass `secrets.CLOUDEVAL_ACCESS_KEY`, and set `action_repository` / `action_ref` if you fork the action.
+This repo ships [`.github/workflows/cloudeval-reusable.yml`](../.github/workflows/cloudeval-reusable.yml). Call it from another repository with `workflow_call` and pass `secrets.CLOUDEVAL_ACCESS_KEY`. The reusable workflow forwards the same review/report inputs to `ganakailabs/cloudeval-action@v1`.
 
 ## Supply chain and pinning
 
