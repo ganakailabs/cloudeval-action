@@ -51,7 +51,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `run_url`. |
 | **Reusable workflow** | [cloudeval-reusable.yml](.github/workflows/cloudeval-reusable.yml) forwards secrets and the same review/report inputs to `ganakailabs/cloudeval-action@v1`. |
 | **CI / tests** | Stubbed `cloudeval` jobs validate gating without live API keys. |
-| **Advanced** | `skip_cli_install`, custom `cli_install_url`, `base_url` for self-hosted API. |
+| **Advanced** | `skip_cli_install`, custom `cli_install_url`, `base_url` for self-hosted API. If the install script is temporarily unavailable, the action falls back to the npm package. |
 
 ## Inputs (summary)
 
@@ -69,7 +69,7 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 
 ## Requirements
 
-- Ubuntu runners (or compatible) with `bash`, `curl`, `jq`, `gh` (for PR comments and reactions).
+- Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for PR comments and reactions).
 - Valid CloudEval access key with capabilities for the operations you run.
 - For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
 - To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `required`.
