@@ -38,9 +38,6 @@ case "$content" in
     ;;
 esac
 
-api_user="$(gh api user --jq '.login' 2>/dev/null || true)"
-api_user="${api_user:-github-actions[bot]}"
-
 delete_reaction_content() {
   local stale_content="$1"
   local ids
@@ -50,7 +47,7 @@ delete_reaction_content() {
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       "repos/${REPO}/issues/${PR_NUMBER}/reactions" \
-      --jq ".[] | select(.content == \"${stale_content}\" and .user.login == \"${api_user}\") | .id" \
+      --jq ".[] | select(.content == \"${stale_content}\") | .id" \
       2>/dev/null || true
   )"
 
@@ -66,6 +63,8 @@ delete_reaction_content() {
       -H "X-GitHub-Api-Version: 2022-11-28" \
       "repos/${REPO}/issues/${PR_NUMBER}/reactions/${reaction_id}" >/dev/null; then
       echo "pr-reaction: failed to delete stale '${stale_content}' reaction ${reaction_id}; continuing" >&2
+    else
+      echo "pr-reaction: deleted stale '${stale_content}' reaction ${reaction_id}" >&2
     fi
   done <<< "$ids"
 }
