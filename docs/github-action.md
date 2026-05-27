@@ -86,7 +86,7 @@ Reviews pushed commits only. Add --ignore-dirty to review HEAD anyway.
 
 Set `ignore_dirty: "true"` only if the workflow intentionally generates local files before review.
 
-When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). Reruns clear stale pass/fail reactions before adding the latest state. The review itself is written as one idempotent PR comment after the run has result data.
+When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). Reruns make a best-effort attempt to clear stale pass/fail reactions before adding the latest state; GitHub may keep historical reactions if the token cannot delete them. The review itself is written as one idempotent PR comment after the run has result data.
 
 Example gates:
 
