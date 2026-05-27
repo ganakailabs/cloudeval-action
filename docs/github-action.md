@@ -9,7 +9,7 @@ The canonical metadata is always [`action.yml`](../action.yml) at the repo root.
 The action **does not** push commits, change branch protection, or modify repository settings by default. It:
 
 1. **Runs on GitHub-hosted (or self-hosted) runners** inside a workflow you define in **your** repo.
-2. **Installs the CloudEval CLI** (unless `skip_cli_install` is true) and invokes `cloudeval` with your **scoped access key**.
+2. **Installs the CloudEval CLI** (unless `skip_cli_install` is true) and invokes `cloudeval` with your **scoped access key**. The action tries the official install script first and falls back to the npm package if the installer endpoint is unavailable.
 3. **Calls the CloudEval API** using that key — the same backend as the web app and CLI. Operations are limited by the key’s **capabilities**, **project scope**, **IP allowlist**, and **budgets** (see [ci-access-keys.md](ci-access-keys.md)).
 4. **Optionally** adds PR reactions for review lifecycle, posts a **single result comment** (updated in place), and/or uploads **workflow artifacts** (JSON summary, downloaded reports).
 

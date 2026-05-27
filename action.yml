@@ -227,9 +227,20 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 30 \
-          "${{ inputs.cli_install_url }}" | bash
+        export PATH="$HOME/.local/bin:$(npm prefix -g)/bin:$PATH"
+        installer="${RUNNER_TEMP:-/tmp}/cloudeval-install.sh"
+        install_from_script() {
+          curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 30 \
+            "${{ inputs.cli_install_url }}" -o "$installer"
+          bash "$installer"
+        }
+        if ! install_from_script; then
+          echo "::warning::CloudEval CLI installer was unavailable; falling back to npm."
+          npm install -g @ganakailabs/cloudeval-cli@latest
+        fi
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "$(npm prefix -g)/bin" >> "$GITHUB_PATH"
+        cloudeval --version
 
     - name: PR reaction started
       if: inputs.post_pr_comment == 'true' && github.event_name == 'pull_request'
