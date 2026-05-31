@@ -31,6 +31,9 @@ append_run_metadata() {
     echo "| | |"
     echo "| --- | --- |"
     [[ -n "$url" ]] && echo "| **Workflow run** | $url |"
+    if [[ "${INPUT_MODE:-}" == "review" ]]; then
+      return 0
+    fi
     [[ -n "${GITHUB_WORKFLOW:-}" ]] && echo "| **Workflow** | \`${GITHUB_WORKFLOW}\` |"
     [[ -n "${GITHUB_REF:-}" ]] && echo "| **Ref** | \`${GITHUB_REF}\` |"
     [[ -n "${GITHUB_SHA:-}" ]] && echo "| **SHA** | \`${GITHUB_SHA:0:7}\` |"

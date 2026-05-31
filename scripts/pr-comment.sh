@@ -44,9 +44,7 @@ fi
 
 BODY="${MARKER}
 
-${body_main}
-
-**Result:** \`${RESULT:-unknown}\`${json_block}"
+${body_main}${json_block}"
 
 # github issue comment body max ~65536; leave headroom
 max_body=60000
