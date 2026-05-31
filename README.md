@@ -67,6 +67,8 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 - **`upload_artifacts`**, **`artifact_name`**, **`artifact_retention_days`**
 - **`include_run_metadata`**, **`job_summary_title`**
 
+Review PR comments are expanded by default: the one-line result stays visible and the CLI-provided drilldowns fold inside the comment.
+
 ## Requirements
 
 - Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for PR comments and reactions).

@@ -139,7 +139,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 - **`summary_answer_jq`**: optional jq on stdout JSON to embed a short excerpt (e.g. `.reason`) in the job summary / gate summary.
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
 - **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one **github-actions[bot]** result comment (marker `<!-- cloudeval-action -->`). Requires `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
-- **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix.
+- **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix. Review comments are expanded by default so the one-line result is visible, while detailed review sections can still fold themselves.
 
 ## Artifacts
 
