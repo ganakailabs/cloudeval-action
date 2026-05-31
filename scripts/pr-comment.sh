@@ -19,19 +19,9 @@ else
   summary_text="_(no summary)_"
 fi
 
-run_link=""
-if [[ -n "${GITHUB_SERVER_URL:-}" && -n "${GITHUB_REPOSITORY:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then
-  run_link="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-fi
-
+# scripts/run.sh already appends run metadata to SUMMARY_FILE. Keep the PR
+# comment body focused and avoid repeating workflow/ref/SHA details twice.
 meta_block=""
-if [[ "${INCLUDE_RUN_METADATA:-true}" == "true" ]]; then
-  meta_block=$'\n\n---\n\n'
-  [[ -n "$run_link" ]] && meta_block+="- **Run:** $run_link"$'\n'
-  [[ -n "${GITHUB_WORKFLOW:-}" ]] && meta_block+="- **Workflow:** \`${GITHUB_WORKFLOW}\`"$'\n'
-  [[ -n "${GITHUB_REF:-}" ]] && meta_block+="- **Ref:** \`${GITHUB_REF}\`"$'\n'
-  [[ -n "${GITHUB_SHA:-}" ]] && meta_block+="- **SHA:** \`${GITHUB_SHA:0:7}\`"$'\n'
-fi
 
 inner="${summary_text}${meta_block}"
 

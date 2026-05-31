@@ -163,7 +163,7 @@ inputs:
   pr_comment_collapsed_details:
     description: Wrap the summary body in a collapsible <details> block in the PR comment.
     required: false
-    default: "true"
+    default: "false"
   pr_comment_json_excerpt:
     description: Append a collapsible JSON excerpt from CLI stdout (truncated) to the PR comment.
     required: false
