@@ -96,7 +96,8 @@ version: 1
 
 # Stack selection tells CloudEval which file drives diagrams and reports.
 stacks:
-  - id: main
+  - id: primary-architecture
+    name: Primary architecture
     entry: azuredeploy.json
     parameters: azuredeploy.parameters.json
 
@@ -106,29 +107,29 @@ resolve:
 
 ci:
   gates:
-    # required fails the job; warn keeps the PR comment but does not block.
-    enforcement: required
+    # block_pull_request fails the job; comment_only keeps the PR comment but does not block.
+    enforcement: block_pull_request
 
     # Minimum Well-Architected score out of 100.
-    overall_score_min: 85
+    minimum_well_architected_score: 85
 
     # Optional default minimum for every pillar. Per-pillar overrides below win.
-    pillar_score_min: 80
+    minimum_pillar_score: 80
     pillars:
       security: 90
       reliability: 85
 
     # Fail on high-risk architecture findings.
-    fail_on_high_risk: true
+    fail_when_high_risk_findings_exist: true
 
     # Fail when policy checks or unit tests fail.
-    fail_on_validation_errors: true
+    fail_when_validation_fails: true
 
     # Optional monthly budget gate. Omit if cost should be reported but not gated.
-    max_monthly_cost: 500
+    max_monthly_cost_usd: 500
 ```
 
-If `ci.gates` is missing, review mode reports a warning rather than failing by default. If gates are present, `enforcement: required` fails the job on gate failures. Use `enforcement: warn` when you want full review output without blocking merges yet.
+If `ci.gates` is missing, review mode reports a warning rather than failing by default. If gates are present, `enforcement: block_pull_request` fails the job on gate failures. Use `enforcement: comment_only` when you want full review output without blocking merges yet. Existing `required`, `warn`, `overall_score_min`, `pillar_score_min`, `fail_on_high_risk`, `fail_on_validation_errors`, and `max_monthly_cost` keys are still accepted for compatibility.
 
 The PR comment distinguishes configured gates from observed posture:
 
@@ -141,7 +142,7 @@ The PR comment distinguishes configured gates from observed posture:
 **Cloudeval Project**: [GitHub Nested E2E](https://cloudeval.ai/app/projects/...)
 ```
 
-`Overall` is the configured gate result. A `CRITICAL` posture can still show with `Overall: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `overall_score_min`, `pillar_score_min`, `fail_on_high_risk`, `fail_on_validation_errors`, and `max_monthly_cost` when the PR should fail.
+`Overall` is the configured gate result. A `CRITICAL` posture can still show with `Overall: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `minimum_well_architected_score`, `minimum_pillar_score`, `fail_when_high_risk_findings_exist`, `fail_when_validation_fails`, and `max_monthly_cost_usd` when the PR should fail.
 
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
 
