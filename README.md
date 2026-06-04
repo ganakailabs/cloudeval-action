@@ -41,7 +41,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | Area | What you get |
 |------|----------------|
 | **Modes** | `review`, `ask`, `agent`, `gate`, `reports`, `nightly` (reports if `project_id` set, else ask/agent). |
-| **Review** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, includes WAF/cost/validation drill-downs plus an AI summary, and writes `review.json` / `review.md`. |
+| **Review** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, includes WAF/cost/validation drill-downs plus short/details AI summary sections, and writes `review.json` / `review.md`. |
 | **Gating** | `review` uses config gates; prompt-based `gate` uses `gate_jq`, `gate_operator`, and `gate_threshold`. |
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
@@ -67,14 +67,14 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 - **`upload_artifacts`**, **`artifact_name`**, **`artifact_retention_days`**
 - **`include_run_metadata`**, **`job_summary_title`**
 
-Review PR comments are expanded by default: the one-line result stays visible and the CLI-provided drilldowns fold inside the comment.
+Review PR comments are expanded by default. The visible header separates the configured **Overall** gate result from the observed Well-Architected posture, validation, policy checks, cost budget status, and linked CloudEval project.
 
 ## Requirements
 
 - Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for PR comments and reactions).
 - Valid CloudEval access key with capabilities for the operations you run.
 - For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
-- To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `required`.
+- To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `required`; low score labels such as `CRITICAL` are informational unless your gates require them to fail.
 
 ## Documentation
 
