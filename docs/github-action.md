@@ -29,7 +29,7 @@ Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 
 | Mode | Behavior |
 |------|----------|
-| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with WAF/cost/validation drill-downs plus an AI summary, and exits non-zero on explicit gate failure. |
+| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with WAF/cost/validation drill-downs plus short/details AI summary sections, and exits non-zero on explicit gate failure. |
 | **`ask`** | Runs `cloudeval ask` with `ask_prompt` (JSON to stdout). If `agent_task` is set, runs `cloudeval agent` instead. Optional gating if `gate_threshold` is set. |
 | **`gate`** | Same as ask/agent, then **fails the job** unless the numeric value from `gate_jq` satisfies `gate_operator` vs `gate_threshold`. |
 | **`agent`** | Runs `cloudeval agent` with `agent_task` (requires `agent_task`). Optional gating. |
@@ -92,20 +92,56 @@ Example gates:
 
 ```yaml
 # .cloudeval/config.yaml
+version: 1
+
+# Stack selection tells CloudEval which file drives diagrams and reports.
+stacks:
+  - id: main
+    entry: azuredeploy.json
+    parameters: azuredeploy.parameters.json
+
+resolve:
+  # Follow relative ARM templateLink files before graph/report analysis.
+  linked_templates: true
+
 ci:
   gates:
+    # required fails the job; warn keeps the PR comment but does not block.
     enforcement: required
+
+    # Minimum Well-Architected score out of 100.
     overall_score_min: 85
+
+    # Optional default minimum for every pillar. Per-pillar overrides below win.
     pillar_score_min: 80
     pillars:
       security: 90
       reliability: 85
+
+    # Fail on high-risk architecture findings.
     fail_on_high_risk: true
+
+    # Fail when policy checks or unit tests fail.
     fail_on_validation_errors: true
+
+    # Optional monthly budget gate. Omit if cost should be reported but not gated.
     max_monthly_cost: 500
 ```
 
 If `ci.gates` is missing, review mode reports a warning rather than failing by default. If gates are present, `enforcement: required` fails the job on gate failures. Use `enforcement: warn` when you want full review output without blocking merges yet.
+
+The PR comment distinguishes configured gates from observed posture:
+
+```md
+🟢 **Overall** : PASS
+🔴 Well-Architected Posture: 23.1/100 (CRITICAL)
+🔴 Validation: 3 unit tests failed
+🟢 Policy checks: GOOD
+🟢 Cost: 143.81 USD/mo (under 100K budget)
+**Cloudeval Project**: [GitHub Nested E2E](https://cloudeval.ai/app/projects/...)
+```
+
+`Overall` is the configured gate result. A `CRITICAL` posture can still show with `Overall: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `overall_score_min`, `pillar_score_min`, `fail_on_high_risk`, `fail_on_validation_errors`, and `max_monthly_cost` when the PR should fail.
 
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
 
