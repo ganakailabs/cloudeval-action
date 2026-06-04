@@ -74,7 +74,7 @@ Review PR comments are expanded by default. The visible header separates the con
 - Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for PR comments and reactions).
 - Valid CloudEval access key with capabilities for the operations you run.
 - For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
-- To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `required`; low score labels such as `CRITICAL` are informational unless your gates require them to fail.
+- To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `block_pull_request` (or the older compatible `required` value); low score labels such as `CRITICAL` are informational unless your gates require them to fail.
 
 ## Documentation
 
