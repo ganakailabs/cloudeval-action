@@ -29,7 +29,7 @@ Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 
 | Mode | Behavior |
 |------|----------|
-| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with WAF/cost/validation drill-downs plus short/details AI summary sections, and exits non-zero on explicit gate failure. |
+| **`review`** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, writes `review.json` / `review.md` with WAF/cost/validation drill-downs plus an evidence-based AI summary, and exits non-zero on explicit gate failure. |
 | **`ask`** | Runs `cloudeval ask` with `ask_prompt` (JSON to stdout). If `agent_task` is set, runs `cloudeval agent` instead. Optional gating if `gate_threshold` is set. |
 | **`gate`** | Same as ask/agent, then **fails the job** unless the numeric value from `gate_jq` satisfies `gate_operator` vs `gate_threshold`. |
 | **`agent`** | Runs `cloudeval agent` with `agent_task` (requires `agent_task`). Optional gating. |
@@ -72,7 +72,7 @@ Defaults:
 - `commit_sha`: `github.sha`
 - `review_output_dir`: `cloudeval-review`
 - `review_wait`: `true`; set `false` only if you want `cloudeval review --no-wait`
-- `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments
+- `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments. The summary starts with direct prose, then folds evidence and recommended actions when the model returns details.
 - `ai_summary_mode`: `ask` by default; set `agent` to generate the narrative summary through an Agent Profile
 - `ai_summary_profile`: `architecture` by default when `ai_summary_mode: agent`
 - `review_wait_timeout_ms`: `900000`
