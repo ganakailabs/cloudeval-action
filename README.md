@@ -15,6 +15,11 @@ Authentication uses a **scoped access key** (`cev_…`). Create keys in the app:
 ## Quick start
 
 ```yaml
+name: CloudEval review
+
+on:
+  pull_request:
+
 permissions:
   contents: read
   pull-requests: write
@@ -41,7 +46,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | Area | What you get |
 |------|----------------|
 | **Modes** | `review`, `ask`, `agent`, `gate`, `reports`, `nightly` (reports if `project_id` set, else ask/agent). |
-| **Review** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, includes WAF/cost/validation drill-downs plus short/details AI summary sections, and writes `review.json` / `review.md`. |
+| **Review** | Runs `cloudeval review`, waits for GitHub sync/report refresh by default, evaluates `.cloudeval/config.yaml` `ci.gates`, includes WAF/cost/validation drill-downs plus an evidence-based AI summary, and writes `review.json` / `review.md`. |
 | **Gating** | `review` uses config gates; prompt-based `gate` uses `gate_jq`, `gate_operator`, and `gate_threshold`. |
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
@@ -67,7 +72,7 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 - **`upload_artifacts`**, **`artifact_name`**, **`artifact_retention_days`**
 - **`include_run_metadata`**, **`job_summary_title`**
 
-Review PR comments are expanded by default. The visible header separates the configured **Overall** gate result from the observed Well-Architected posture, validation, policy checks, cost budget status, and linked CloudEval project.
+Review PR comments are expanded by default. The visible header separates the configured **Overall** gate result from the observed Well-Architected posture, validation, policy checks, cost budget status, and linked CloudEval project. The AI summary starts with direct prose, then folds supporting evidence and recommended actions when available.
 
 ## Requirements
 
