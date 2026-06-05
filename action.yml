@@ -315,6 +315,9 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        CLOUDEVAL_ACCESS_KEY: ${{ inputs.access_key }}
+        INPUT_BASE_URL: ${{ inputs.base_url }}
+        INPUT_PROJECT_ID: ${{ inputs.project_id }}
         SUMMARY_FILE: ${{ steps.run.outputs.summary_file }}
         JSON_PATH: ${{ steps.run.outputs.json_path }}
         RESULT: ${{ steps.run.outputs.result }}

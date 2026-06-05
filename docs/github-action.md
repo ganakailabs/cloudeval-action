@@ -19,7 +19,7 @@ For `mode: review`, checked-out **repository files** are used to identify the re
 
 ## Authentication
 
-- Set a repository (or environment) secret **`CLOUDEVAL_ACCESS_KEY`** with a `cev_…` access key from the app: **Developer → API & CLI access keys**.
+- Set a repository (or environment) secret **`CLOUDEVAL_ACCESS_KEY`** with a `cev_…` access key from the app: **Developer → API & CLI access keys**. Use the **GitHub Actions CI** template so review mode can read projects/reports, run summaries, and post GitHub App comments when the project is linked to GitHub.
 - Pass it to the action as `access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}`.
 - Optional **`project_id`** input (or secret) when commands must target a specific CloudEval project.
 
@@ -86,7 +86,9 @@ Reviews pushed commits only. Add --ignore-dirty to review HEAD anyway.
 
 Set `ignore_dirty: "true"` only if the workflow intentionally generates local files before review.
 
-When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). Reruns make a best-effort attempt to clear stale pass/fail reactions before adding the latest state; GitHub may keep historical reactions if the token cannot delete them. The review itself is written as one idempotent PR comment after the run has result data.
+When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). Reruns make a best-effort attempt to clear stale pass/fail reactions before adding the latest state; GitHub may keep historical reactions if the token cannot delete them.
+
+The review itself is written as one idempotent PR comment after the run has result data. For projects linked through the CloudEval GitHub App, the action first asks CloudEval to post or update the comment through the app installation. That makes the visible comment author the CloudEval GitHub App and uses the app logo. If the app route is unavailable, the key is missing the comment capability, or the project is not GitHub-linked, the action falls back to the existing `github-actions[bot]` comment path.
 
 Example gates:
 
@@ -175,7 +177,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 - **`include_run_metadata`**: adds workflow run link, ref, SHA to markdown.
 - **`summary_answer_jq`**: optional jq on stdout JSON to embed a short excerpt (e.g. `.reason`) in the job summary / gate summary.
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
-- **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one **github-actions[bot]** result comment (marker `<!-- cloudeval-action -->`). Requires `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
+- **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one result comment (marker `<!-- cloudeval-action -->`). GitHub App-linked projects post the comment through the CloudEval App identity when the access key has `github:comment`; otherwise the action falls back to **github-actions[bot]**. The fallback and reactions require `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
 - **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix. Review comments are expanded by default so the one-line result is visible, while detailed review sections can still fold themselves.
 
 ## Artifacts

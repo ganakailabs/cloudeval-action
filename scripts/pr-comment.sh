@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-  echo "pr-comment: GITHUB_TOKEN not set; skipping" >&2
-  exit 0
-fi
-
 if [[ -z "${PR_NUMBER:-}" ]] || [[ -z "${REPO:-}" ]]; then
   echo "pr-comment: PR_NUMBER or REPO not set; skipping" >&2
   exit 0
@@ -50,6 +45,62 @@ ${body_main}${json_block}"
 max_body=60000
 if [[ "${#BODY}" -gt "$max_body" ]]; then
   BODY="${BODY:0:$max_body}"$'\n\n… _(comment truncated for github size limit)_'
+fi
+
+try_cloudeval_app_comment() {
+  if [[ -z "${CLOUDEVAL_ACCESS_KEY:-}" || -z "${INPUT_PROJECT_ID:-}" ]]; then
+    return 1
+  fi
+  if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    return 1
+  fi
+  local api_base="${INPUT_BASE_URL:-${CLOUDEVAL_BASE_URL:-https://cloudeval.ai/api/proxy/v1}}"
+  api_base="${api_base%/}"
+  local payload_file response_file status_code idempotency_key
+  payload_file="$(mktemp)"
+  response_file="$(mktemp)"
+  idempotency_key="cloudeval-pr-comment-${GITHUB_RUN_ID:-run}-${PR_NUMBER}"
+  jq -n \
+    --arg repo "$REPO" \
+    --argjson pull_request_number "$PR_NUMBER" \
+    --arg body "$BODY" \
+    --arg marker "$MARKER" \
+    '{
+      repo_full_name: $repo,
+      pull_request_number: $pull_request_number,
+      body: $body,
+      marker: $marker
+    }' >"$payload_file"
+  status_code="$(
+    curl -sS \
+      -o "$response_file" \
+      -w '%{http_code}' \
+      -X POST "${api_base}/projects/${INPUT_PROJECT_ID}/github/pr-comment" \
+      -H "Authorization: Bearer ${CLOUDEVAL_ACCESS_KEY}" \
+      -H "Content-Type: application/json" \
+      -H "Idempotency-Key: ${idempotency_key}" \
+      --data-binary "@${payload_file}" || true
+  )"
+  rm -f "$payload_file"
+  if [[ "$status_code" =~ ^2 ]]; then
+    echo "pr-comment: posted via CloudEval GitHub App"
+    rm -f "$response_file"
+    return 0
+  fi
+  local preview
+  preview="$(head -c 300 "$response_file" 2>/dev/null | tr -d '\r' || true)"
+  rm -f "$response_file"
+  echo "pr-comment: CloudEval GitHub App posting unavailable (${status_code}); falling back to github-actions[bot]. ${preview}" >&2
+  return 1
+}
+
+if try_cloudeval_app_comment; then
+  exit 0
+fi
+
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo "pr-comment: GITHUB_TOKEN not set; skipping github-actions[bot] fallback" >&2
+  exit 0
 fi
 
 tmp="$(mktemp)"
