@@ -8,7 +8,7 @@ Composite action that installs the [CloudEval CLI](https://github.com/ganakailab
 
 The image above is the same **abstract cloud** mark as in the web app ([`app/layout.tsx` OpenGraph](https://github.com/ganakailabs/cloudeval-frontend/blob/main/app/layout.tsx) uses `/common/logo-abstract-cloud-dark-v3.png`). The GitHub Marketplace badge still uses GitHub’s **Feather `cloud`** icon because [custom images are not supported](https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#branding) in `action.yml` `branding`.
 
-Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)).
+Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)). For PR review, use the **GitHub Actions CI** key template so CloudEval can run reports, generate AI summaries, and post GitHub App comments for GitHub-linked projects.
 
 **Full guide (modes, gating, repo behavior, every input family):** [docs/github-action.md](docs/github-action.md)
 
@@ -51,7 +51,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
-| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with collapsible details, optional JSON excerpt, run metadata + link. |
+| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with collapsible details, optional JSON excerpt, run metadata + link. For GitHub App-linked projects, comment posting is delegated to the CloudEval GitHub App so the comment uses the CloudEval App identity and logo; otherwise it falls back to `github-actions[bot]`. |
 | **Artifacts** | Staged JSON, summary, and downloaded reports with configurable **retention-days**. |
 | **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `run_url`. |
 | **Reusable workflow** | [cloudeval-reusable.yml](.github/workflows/cloudeval-reusable.yml) forwards secrets and the same review/report inputs to `ganakailabs/cloudeval-action@v1`. |
@@ -76,7 +76,7 @@ Review PR comments are expanded by default. The visible header separates the con
 
 ## Requirements
 
-- Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for PR comments and reactions).
+- Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for fallback PR comments and reactions).
 - Valid CloudEval access key with capabilities for the operations you run.
 - For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
 - To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `block_pull_request` (or the older compatible `required` value); low score labels such as `CRITICAL` are informational unless your gates require them to fail.
