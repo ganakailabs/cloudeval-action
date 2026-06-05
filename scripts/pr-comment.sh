@@ -94,7 +94,29 @@ try_cloudeval_app_comment() {
   return 1
 }
 
+delete_legacy_github_actions_comments() {
+  if [[ -z "${GITHUB_TOKEN:-}" ]] || ! command -v gh >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local ids
+  ids="$(
+    gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+      --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- cloudeval-action -->"))) | .id' \
+      || true
+  )"
+  if [[ -z "$ids" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r comment_id; do
+    [[ -z "$comment_id" ]] && continue
+    gh api --method DELETE "repos/${REPO}/issues/comments/${comment_id}" >/dev/null || true
+  done <<<"$ids"
+}
+
 if try_cloudeval_app_comment; then
+  delete_legacy_github_actions_comments
   exit 0
 fi
 
