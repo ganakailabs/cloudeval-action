@@ -185,7 +185,7 @@ inputs:
     required: false
     default: "14"
   include_run_metadata:
-    description: Add run URL, ref, and SHA to markdown summary and PR comment.
+    description: Add workflow metadata to markdown summary and PR comment. Review mode places the run URL in the Source section.
     required: false
     default: "true"
   job_summary_title:
