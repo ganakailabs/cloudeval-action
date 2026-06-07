@@ -141,7 +141,13 @@ The PR comment distinguishes configured gates from observed posture:
 🔴 Validation: 3 unit tests failed
 🟢 Policy checks: GOOD
 🟢 Cost: 143.81 USD/mo (under 100K budget)
-**Cloudeval Project**: [GitHub Nested E2E](https://cloudeval.ai/app/projects/...)
+
+#### Source
+
+- **CloudEval project**: [GitHub Nested E2E](https://cloudeval.ai/app/projects/...)
+- **Repository**: `owner/repo`
+- **Ref**: `feature/infra-change`
+- **Commit**: `abc123def456`
 ```
 
 `Overall` is the configured gate result. A `CRITICAL` posture can still show with `Overall: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `minimum_well_architected_score`, `minimum_pillar_score`, `fail_when_high_risk_findings_exist`, `fail_when_validation_fails`, and `max_monthly_cost_usd` when the PR should fail.
