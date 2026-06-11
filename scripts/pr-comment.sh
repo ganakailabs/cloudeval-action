@@ -14,8 +14,9 @@ else
   summary_text="_(no summary)_"
 fi
 
-# scripts/run.sh already appends run metadata to SUMMARY_FILE. Keep the PR
-# comment body focused and avoid repeating workflow/ref/SHA details twice.
+# scripts/run.sh already adds run metadata to SUMMARY_FILE. In review mode the
+# workflow link is inserted into the Source section, so keep this body focused
+# and avoid repeating workflow/ref/SHA details twice.
 meta_block=""
 
 inner="${summary_text}${meta_block}"

@@ -12,6 +12,10 @@ Authentication uses a **scoped access key** (`cev_…`). Create keys in the app:
 
 **Full guide (modes, gating, repo behavior, every input family):** [docs/github-action.md](docs/github-action.md)
 
+## Public example
+
+Use [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) as a clean public reference. It includes nested Azure ARM templates, `.cloudeval/config.yaml`, this action wired in `.github/workflows/cloudeval-review.yml`, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2).
+
 ## Quick start
 
 ```yaml
@@ -51,7 +55,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
-| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with collapsible details, optional JSON excerpt, run metadata + link. For GitHub App-linked projects, comment posting is delegated to the CloudEval GitHub App so the comment uses the CloudEval App identity and logo; otherwise it falls back to `github-actions[bot]`. |
+| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with collapsible details, optional JSON excerpt, CloudEval report links, workflow/artifact links, resource-cost pie, and savings impact chart. For GitHub App-linked projects, comment posting is delegated to the CloudEval GitHub App so the comment uses the CloudEval App identity and logo; otherwise it falls back to `github-actions[bot]`. |
 | **Artifacts** | Staged JSON, summary, and downloaded reports with configurable **retention-days**. |
 | **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `run_url`. |
 | **Reusable workflow** | [cloudeval-reusable.yml](.github/workflows/cloudeval-reusable.yml) forwards secrets and the same review/report inputs to `ganakailabs/cloudeval-action@v1`. |

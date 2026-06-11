@@ -41,6 +41,101 @@ append_run_metadata() {
   return 0
 }
 
+insert_review_run_metadata_into_source() {
+  [[ "${INPUT_INCLUDE_RUN_METADATA:-true}" == "true" ]] || return 1
+  [[ "${INPUT_MODE:-}" == "review" ]] || return 1
+  [[ -f "$SUMMARY_FILE" ]] || return 1
+  local url
+  url="$(run_url_value)"
+  [[ -n "$url" ]] || return 1
+  if grep -F "**Workflow run**" "$SUMMARY_FILE" >/dev/null 2>&1; then
+    return 0
+  fi
+  local tmp
+  tmp="$(mktemp)"
+  awk -v url="$url" '
+    BEGIN { in_source = 0; in_open = 0; inserted = 0 }
+    /^#### Open in CloudEval$/ {
+      in_open = 1
+      in_source = 0
+      print
+      next
+    }
+    in_open && /^$/ && inserted == 0 {
+      print
+      next
+    }
+    in_open && /^- / && inserted == 0 {
+      print
+      next
+    }
+    in_open && /^#### / && inserted == 0 {
+      print "- **Workflow run**: " url
+      print "- **Download review artifacts**: " url
+      print ""
+      inserted = 1
+      in_open = 0
+      print
+      next
+    }
+    in_open && /^<details>/ && inserted == 0 {
+      print "- **Workflow run**: " url
+      print "- **Download review artifacts**: " url
+      print ""
+      inserted = 1
+      in_open = 0
+      print
+      next
+    }
+    /^#### Source$/ {
+      if (in_open && inserted == 0) {
+        print "- **Workflow run**: " url
+        print "- **Download review artifacts**: " url
+        print ""
+        inserted = 1
+      }
+      in_open = 0
+      in_source = 1
+      print
+      next
+    }
+    in_source && /^- \*\*Commit\*\*/ {
+      print
+      print "- **Workflow run**: " url
+      inserted = 1
+      next
+    }
+    in_source && /^<details>/ && inserted == 0 {
+      print "- **Workflow run**: " url
+      print ""
+      inserted = 1
+      in_source = 0
+      print
+      next
+    }
+    in_source && /^#### / && inserted == 0 {
+      print "- **Workflow run**: " url
+      print ""
+      inserted = 1
+      in_source = 0
+      print
+      next
+    }
+    { print }
+    END {
+      if (in_open && inserted == 0) {
+        print "- **Workflow run**: " url
+        print "- **Download review artifacts**: " url
+        inserted = 1
+      }
+      if (in_source && inserted == 0) {
+        print "- **Workflow run**: " url
+      }
+    }
+  ' "$SUMMARY_FILE" >"$tmp"
+  mv "$tmp" "$SUMMARY_FILE"
+}
+
 append_answer_snippet() {
   local jq_expr="${INPUT_SUMMARY_ANSWER_JQ:-}"
   [[ -z "$jq_expr" ]] && return 0
@@ -296,7 +391,9 @@ run_review_flow() {
       fi
     } >"$SUMMARY_FILE"
   fi
-  append_run_metadata >>"$SUMMARY_FILE"
+  if ! insert_review_run_metadata_into_source; then
+    append_run_metadata >>"$SUMMARY_FILE"
+  fi
   cp -r "$out_rel" "$ARTIFACT_DIR/review" 2>/dev/null || true
   stage_artifacts
   local extracted
