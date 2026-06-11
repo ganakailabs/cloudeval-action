@@ -54,8 +54,47 @@ insert_review_run_metadata_into_source() {
   local tmp
   tmp="$(mktemp)"
   awk -v url="$url" '
-    BEGIN { in_source = 0; inserted = 0 }
+    BEGIN { in_source = 0; in_open = 0; inserted = 0 }
+    /^#### Open in CloudEval$/ {
+      in_open = 1
+      in_source = 0
+      print
+      next
+    }
+    in_open && /^$/ && inserted == 0 {
+      print
+      next
+    }
+    in_open && /^- / && inserted == 0 {
+      print
+      next
+    }
+    in_open && /^#### / && inserted == 0 {
+      print "- **Workflow run**: " url
+      print "- **Download review artifacts**: " url
+      print ""
+      inserted = 1
+      in_open = 0
+      print
+      next
+    }
+    in_open && /^<details>/ && inserted == 0 {
+      print "- **Workflow run**: " url
+      print "- **Download review artifacts**: " url
+      print ""
+      inserted = 1
+      in_open = 0
+      print
+      next
+    }
     /^#### Source$/ {
+      if (in_open && inserted == 0) {
+        print "- **Workflow run**: " url
+        print "- **Download review artifacts**: " url
+        print ""
+        inserted = 1
+      }
+      in_open = 0
       in_source = 1
       print
       next
@@ -84,6 +123,11 @@ insert_review_run_metadata_into_source() {
     }
     { print }
     END {
+      if (in_open && inserted == 0) {
+        print "- **Workflow run**: " url
+        print "- **Download review artifacts**: " url
+        inserted = 1
+      }
       if (in_source && inserted == 0) {
         print "- **Workflow run**: " url
       }

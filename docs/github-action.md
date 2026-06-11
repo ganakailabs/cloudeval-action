@@ -42,6 +42,8 @@ All LLM-facing modes use **`--format json`** and **`--non-interactive`**.
 
 Use review mode for pull requests after the repository is already linked to a CloudEval GitHub App project.
 
+Reference implementation: [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) contains nested ARM templates, `.cloudeval/config.yaml`, a CloudEval review workflow, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2). Fork it when you want to test this action against your own CloudEval project.
+
 Setup checklist:
 
 1. Install the **CloudEval GitHub App** on the repository and create/import the CloudEval project from that repository.
@@ -160,6 +162,18 @@ The PR comment distinguishes configured gates from observed posture:
 
 `Overall` is the configured gate result. A `CRITICAL` posture can still show with `Overall: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `minimum_well_architected_score`, `minimum_pillar_score`, `fail_when_high_risk_findings_exist`, `fail_when_validation_fails`, and `max_monthly_cost_usd` when the PR should fail.
 
+Review Markdown also includes an **Open in CloudEval** section when links are available:
+
+- project preview
+- architecture report
+- cost report
+- validation details
+- PDF download
+- workflow run
+- review artifacts
+
+Cost drilldowns include a resource-cost pie chart, a projected-versus-optimized savings chart, and a compact service-cost table. If resource-level cost rows do not add up to the displayed total, the chart includes an `Unallocated` slice so the visual reconciles to the monthly estimate.
+
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
 
 ## Gating (`gate_*`)
@@ -188,7 +202,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 
 ## Summaries and PR feedback
 
-- **`include_run_metadata`**: adds workflow metadata to markdown. In `mode: review`, the workflow run link appears in the `Source` section with the project, repository, ref, and commit. Other modes append a small metadata table.
+- **`include_run_metadata`**: adds workflow metadata to markdown. In `mode: review`, the workflow run and artifact links appear in the `Open in CloudEval` section when available. Older CLI output is patched for compatibility. Other modes append a small metadata table.
 - **`summary_answer_jq`**: optional jq on stdout JSON to embed a short excerpt (e.g. `.reason`) in the job summary / gate summary.
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
 - **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one result comment (marker `<!-- cloudeval-action -->`). GitHub App-linked projects post the comment through the CloudEval App identity when the access key has `github:comment`; otherwise the action falls back to **github-actions[bot]**. The fallback and reactions require `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
