@@ -82,18 +82,43 @@ jobs:
             esac
           done
           mkdir -p "$outdir"
-          echo "## Review summary" > "$outdir/review.md"
+          cat > "$outdir/review.md" <<'MD'
+          ## CloudEval infrastructure review
+
+          | Signal | Result |
+          | --- | --- |
+          | Merge gate | 🟢 **PASS** |
+          | Observed posture | 🟢 **91/100 (EXCELLENT)** |
+
+          ### Links
+
+          [![Workflow](https://img.shields.io/badge/Workflow-run-475569?style=flat-square)](https://github.com/ganakailabs/example/actions/runs/123456789)
+
+          <details>
+          <summary><strong>Cost drilldown</strong></summary>
+
+          ```mermaid
+          xychart-beta
+            title "Monthly cost impact"
+            x-axis ["Current", "Optimized"]
+            y-axis "USD/mo" 0 --> 42
+            bar [42, 35]
+          ```
+
+          </details>
+          MD
           echo '{"data":{"gate":{"overallScore":91,"status":"pass"}}}'
           EOF
           chmod +x bin/cloudeval
           echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
 
       - name: Composite action (review)
+        id: review
         uses: ./
         with:
           access_key: cev_live_ak_01MOCKMOCKMOCKMOCK_mockkeyvalue
           skip_cli_install: "true"
-          include_run_metadata: "false"
+          include_run_metadata: "true"
           mode: review
           project_id: project-github
           repo: ganakailabs/example
@@ -106,3 +131,8 @@ jobs:
         run: |
           grep -- '--ai-summary-mode agent' "$RUNNER_TEMP/cloudeval-args.txt"
           grep -- '--ai-summary-profile architecture' "$RUNNER_TEMP/cloudeval-args.txt"
+          summary_file='${{ steps.review.outputs.summary_file }}'
+          grep -- '## CloudEval infrastructure review' "$summary_file"
+          grep -- 'img.shields.io/badge/Workflow-run' "$summary_file"
+          test "$(grep -o 'actions/runs' "$summary_file" | wc -l | tr -d ' ')" = "1"
+          ! grep -- '\*\*Workflow run\*\*' "$summary_file"
