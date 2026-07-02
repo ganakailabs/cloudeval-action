@@ -80,8 +80,6 @@ Review PR comments are expanded by default. The visible header separates the con
 
 PDF artifact output supports `report_type` (`all`, `architecture`, `cost`, `unit_tests`), `verbosity` (`brief`, `detailed`, `evidence`), and `fail_on_error` for teams that want PDF export failures to block the review.
 
-PDF artifact output supports `report_type` (`all`, `architecture`, `cost`, `unit_tests`), `verbosity` (`brief`, `detailed`, `evidence`), and `fail_on_error` for teams that want PDF export failures to block the review.
-
 ## Requirements
 
 - Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for fallback PR comments and reactions).
