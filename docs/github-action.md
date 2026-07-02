@@ -191,6 +191,15 @@ ci:
 
 The uploaded artifact then contains `review/review.pdf` alongside `review/review.md` and `review/review.json`. This gives the PR both links: the hosted `PDF` badge and the GitHub `Artifacts` badge.
 
+Supported PDF output keys:
+
+| Key | Supported values | Default |
+| --- | --- | --- |
+| `enabled` | `true`, `false` | `false` |
+| `report_type` | `all`, `architecture`, `cost`, `unit_tests` | `all` |
+| `verbosity` | `brief`, `detailed`, `evidence` | `evidence` |
+| `fail_on_error` | `true`, `false` | `false` |
+
 The visible AI summary is followed by a folded detailed AI reviewer note and an open action queue. Well-Architected drilldowns include a Mermaid `radar-beta` chart when enough pillar scores are available, plus a table fallback for GitHub renderers that do not support radar charts yet. Cost drilldowns include a resource-cost pie chart, a projected-versus-optimized savings chart, and a compact service-cost table. If resource-level cost rows do not add up to the displayed total, the chart includes an `Unallocated` slice so the visual reconciles to the monthly estimate.
 
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
