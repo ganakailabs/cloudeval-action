@@ -176,6 +176,30 @@ Review Markdown also includes a **Links** section with badges when URLs are avai
 - workflow run
 - review artifacts
 
+The `PDF` badge links to the CloudEval-hosted PDF download. To also attach a generated PDF to the GitHub workflow artifact, enable review PDF output in `.cloudeval/config.yaml` and keep `upload_artifacts: true`:
+
+```yaml
+ci:
+  review:
+    outputs:
+      pdf:
+        enabled: true
+        report_type: all
+        verbosity: evidence
+        fail_on_error: false
+```
+
+The uploaded artifact then contains `review/review.pdf` alongside `review/review.md` and `review/review.json`, including failed review runs. This gives the PR both links: the hosted `PDF` badge and the GitHub `Artifacts` badge.
+
+Supported PDF output keys:
+
+| Key | Supported values | Default |
+| --- | --- | --- |
+| `enabled` | `true`, `false` | `false` |
+| `report_type` | `all`, `architecture`, `cost`, `unit_tests` | `all` |
+| `verbosity` | `brief`, `detailed`, `evidence` | `evidence` |
+| `fail_on_error` | `true`, `false` | `false` |
+
 The visible AI summary is followed by a folded detailed AI reviewer note and an open action queue. Well-Architected drilldowns include a Mermaid `radar-beta` chart when enough pillar scores are available, plus a table fallback for GitHub renderers that do not support radar charts yet. Cost drilldowns include a resource-cost pie chart, a projected-versus-optimized savings chart, and a compact service-cost table. If resource-level cost rows do not add up to the displayed total, the chart includes an `Unallocated` slice so the visual reconciles to the monthly estimate.
 
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
@@ -214,7 +238,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 
 ## Artifacts
 
-- **`upload_artifacts`**: uploads a staged directory containing summary markdown, captured CLI JSON, and copied reports (when present).
+- **`upload_artifacts`**: uploads a staged directory containing summary markdown, captured CLI JSON, copied reports (when present), and `review/review.pdf` when CLI review PDF output is enabled in `.cloudeval/config.yaml`.
 - **`artifact_name`**, **`artifact_retention_days`**: passed to `actions/upload-artifact`.
 
 ## Outputs (for downstream steps)
@@ -227,6 +251,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 | `summary_file` | Path on runner (for custom steps) |
 | `json_path` | Captured CLI JSON path |
 | `report_path` | Reports download directory when applicable |
+| `artifact_path` | Staged artifact directory before upload |
 | `run_url` | Link to the workflow run |
 
 ## Reusable workflow

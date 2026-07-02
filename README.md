@@ -57,7 +57,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
 | **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with a merge-gate table, CloudEval report badges, visible AI summary, folded detailed AI reviewer note, action queue, Well-Architected radar/table drilldown, resource-cost pie, and savings impact chart. For GitHub App-linked projects, comment posting is delegated to the CloudEval GitHub App so the comment uses the CloudEval App identity and logo; otherwise it falls back to `github-actions[bot]`. |
 | **Artifacts** | Staged JSON, summary, and downloaded reports with configurable **retention-days**. |
-| **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `run_url`. |
+| **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `artifact_path`, `run_url`. |
 | **Reusable workflow** | [cloudeval-reusable.yml](.github/workflows/cloudeval-reusable.yml) forwards secrets and the same review/report inputs to `ganakailabs/cloudeval-action@v1`. |
 | **CI / tests** | Stubbed `cloudeval` jobs validate gating without live API keys. |
 | **Advanced** | `skip_cli_install`, custom `cli_install_url`, `base_url` for self-hosted API. If the install script is temporarily unavailable, the action falls back to the npm package. |
@@ -76,7 +76,9 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 - **`upload_artifacts`**, **`artifact_name`**, **`artifact_retention_days`**
 - **`include_run_metadata`**, **`job_summary_title`**
 
-Review PR comments are expanded by default. The visible header separates the configured **Merge gate** result from observed Well-Architected posture, validation, policy checks, and cost budget status. CloudEval project, report, PDF, workflow, and artifact links render as badges. The AI summary stays visible, while the detailed AI reviewer note folds by default; action queue, Well-Architected, cost, validation, and architecture evidence sections use GitHub-native disclosures.
+Review PR comments are expanded by default. The visible header separates the configured **Merge gate** result from observed Well-Architected posture, validation, policy checks, and cost budget status. CloudEval project, report, PDF, workflow, and artifact links render as badges. The `PDF` badge points to the CloudEval-hosted PDF; when `.cloudeval/config.yaml` enables `ci.review.outputs.pdf.enabled` and `upload_artifacts: true`, the uploaded GitHub artifact also contains `review/review.pdf`, including failed review runs. The AI summary stays visible, while the detailed AI reviewer note folds by default; action queue, Well-Architected, cost, validation, and architecture evidence sections use GitHub-native disclosures.
+
+PDF artifact output supports `report_type` (`all`, `architecture`, `cost`, `unit_tests`), `verbosity` (`brief`, `detailed`, `evidence`), and `fail_on_error` for teams that want PDF export failures to block the review.
 
 ## Requirements
 
