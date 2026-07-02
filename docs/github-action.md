@@ -189,7 +189,7 @@ ci:
         fail_on_error: false
 ```
 
-The uploaded artifact then contains `review/review.pdf` alongside `review/review.md` and `review/review.json`. This gives the PR both links: the hosted `PDF` badge and the GitHub `Artifacts` badge.
+The uploaded artifact then contains `review/review.pdf` alongside `review/review.md` and `review/review.json`, including failed review runs. This gives the PR both links: the hosted `PDF` badge and the GitHub `Artifacts` badge.
 
 Supported PDF output keys:
 

@@ -140,3 +140,57 @@ jobs:
           test -s "$artifact_path/review/review.pdf"
           test "$(grep -o 'actions/runs' "$summary_file" | wc -l | tr -d ' ')" = "1"
           ! grep -- '\*\*Workflow run\*\*' "$summary_file"
+
+  mock-review-fail-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Stub cloudeval (failing review)
+        run: |
+          mkdir -p bin
+          cat > bin/cloudeval <<'EOF'
+          #!/usr/bin/env bash
+          outdir="cloudeval-review"
+          while [[ $# -gt 0 ]]; do
+            case "$1" in
+              --output)
+                outdir="$2"
+                shift 2
+                ;;
+              *)
+                shift
+                ;;
+            esac
+          done
+          mkdir -p "$outdir"
+          printf '%s\n' '## CloudEval infrastructure review' > "$outdir/review.md"
+          printf '%s\n' '%PDF-1.4 mock failing review pdf' > "$outdir/review.pdf"
+          echo '{"data":{"gate":{"overallScore":23,"status":"fail"}}}'
+          exit 1
+          EOF
+          chmod +x bin/cloudeval
+          echo "${{ github.workspace }}/bin" >> "$GITHUB_PATH"
+
+      - name: Composite action (failing review)
+        id: review
+        uses: ./
+        continue-on-error: true
+        with:
+          access_key: cev_live_ak_01MOCKMOCKMOCKMOCK_mockkeyvalue
+          skip_cli_install: "true"
+          include_run_metadata: "true"
+          mode: review
+          project_id: project-github
+          repo: ganakailabs/example
+          ref: main
+          commit_sha: abc123
+          upload_artifacts: "true"
+          artifact_name: cloudeval-failing-review-output
+
+      - name: Assert failing review still stages PDF artifact
+        run: |
+          test '${{ steps.review.outcome }}' = 'failure'
+          artifact_path='${{ steps.review.outputs.artifact_path }}'
+          test -s "$artifact_path/review/review.pdf"
+          test -s "$artifact_path/review/review.md"

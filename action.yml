@@ -306,7 +306,7 @@ runs:
       run: bash "${{ github.action_path }}/scripts/run.sh"
 
     - name: Upload artifact
-      if: inputs.upload_artifacts == 'true'
+      if: always() && inputs.upload_artifacts == 'true'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: ${{ inputs.artifact_name }}
