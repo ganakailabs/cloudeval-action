@@ -215,6 +215,9 @@ outputs:
   json_path:
     description: Path to captured CLI JSON stdout
     value: ${{ steps.run.outputs.json_path }}
+  artifact_path:
+    description: Path to staged artifact directory before upload
+    value: ${{ steps.run.outputs.artifact_path }}
   run_url:
     description: URL to this workflow run (when include_run_metadata supplies server env)
     value: ${{ steps.run.outputs.run_url }}

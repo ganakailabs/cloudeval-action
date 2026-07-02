@@ -107,6 +107,7 @@ jobs:
 
           </details>
           MD
+          printf '%s\n' '%PDF-1.4 mock review pdf' > "$outdir/review.pdf"
           echo '{"data":{"gate":{"overallScore":91,"status":"pass"}}}'
           EOF
           chmod +x bin/cloudeval
@@ -126,13 +127,16 @@ jobs:
           commit_sha: abc123
           ai_summary_mode: agent
           ai_summary_profile: architecture
+          upload_artifacts: "true"
 
       - name: Assert review summary mode forwarding
         run: |
           grep -- '--ai-summary-mode agent' "$RUNNER_TEMP/cloudeval-args.txt"
           grep -- '--ai-summary-profile architecture' "$RUNNER_TEMP/cloudeval-args.txt"
           summary_file='${{ steps.review.outputs.summary_file }}'
+          artifact_path='${{ steps.review.outputs.artifact_path }}'
           grep -- '## CloudEval infrastructure review' "$summary_file"
           grep -- 'img.shields.io/badge/Workflow-run' "$summary_file"
+          test -s "$artifact_path/review/review.pdf"
           test "$(grep -o 'actions/runs' "$summary_file" | wc -l | tr -d ' ')" = "1"
           ! grep -- '\*\*Workflow run\*\*' "$summary_file"
