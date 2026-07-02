@@ -81,7 +81,7 @@ Defaults:
 - `commit_sha`: `github.sha`
 - `review_output_dir`: `cloudeval-review`
 - `review_wait`: `true`; set `false` only if you want `cloudeval review --no-wait`
-- `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments. The summary starts with direct prose, then folds evidence and recommended actions when the model returns details.
+- `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments. The summary starts with direct prose. The detailed AI reviewer note folds by default and contains evidence, reasoning, and next actions when available.
 - `ai_summary_mode`: `ask` by default; set `agent` to generate the narrative summary through an Agent Profile
 - `ai_summary_profile`: `architecture` by default when `ai_summary_mode: agent`
 - `review_wait_timeout_ms`: `900000`
@@ -145,24 +145,28 @@ If `ci.gates` is missing, review mode reports a warning rather than failing by d
 The PR comment distinguishes configured gates from observed posture:
 
 ```md
-🟢 **Overall** : PASS
-🔴 Well-Architected Posture: 23.1/100 (CRITICAL)
-🔴 Validation: 3 unit tests failed
-🟢 Policy checks: GOOD
-🟢 Cost: 143.81 USD/mo (under 100K budget)
+## CloudEval infrastructure review
 
-#### Source
+| Signal | Result |
+| --- | --- |
+| Merge gate | 🟢 **PASS** |
+| Observed posture | 🔴 **23.1/100 (CRITICAL)** |
+| Validation | 🔴 **3 unit tests failed** |
+| Policy | 🟢 **GOOD** |
+| Cost | 🟢 **143.81 USD/mo (under 100K budget)** |
 
-- **CloudEval project**: [GitHub Nested E2E](https://cloudeval.ai/app/projects/...)
-- **Repository**: `owner/repo`
-- **Ref**: `feature/infra-change`
-- **Commit**: `abc123def456`
-- **Workflow run**: https://github.com/owner/repo/actions/runs/123456789
+### Links
+
+[![Project](...)](...) [![Report](...)](...) [![Cost](...)](...) [![Validation](...)](...) [![PDF](...)](...) [![Workflow](...)](...)
+
+### Decision
+
+🟢 **PASS** - configured gates passed, but observed Well-Architected posture is **23.1/100 (CRITICAL)**. Tighten gate thresholds if this posture should block pull requests.
 ```
 
-`Overall` is the configured gate result. A `CRITICAL` posture can still show with `Overall: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `minimum_well_architected_score`, `minimum_pillar_score`, `fail_when_high_risk_findings_exist`, `fail_when_validation_fails`, and `max_monthly_cost_usd` when the PR should fail.
+`Merge gate` is the configured gate result. A `CRITICAL` posture can still show with `Merge gate: PASS` if your config sets permissive thresholds, disables validation/high-risk failures, or uses a high cost budget. Tighten `minimum_well_architected_score`, `minimum_pillar_score`, `fail_when_high_risk_findings_exist`, `fail_when_validation_fails`, and `max_monthly_cost_usd` when the PR should fail.
 
-Review Markdown also includes an **Open in CloudEval** section when links are available:
+Review Markdown also includes a **Links** section with badges when URLs are available:
 
 - project preview
 - architecture report
@@ -172,7 +176,7 @@ Review Markdown also includes an **Open in CloudEval** section when links are av
 - workflow run
 - review artifacts
 
-Cost drilldowns include a resource-cost pie chart, a projected-versus-optimized savings chart, and a compact service-cost table. If resource-level cost rows do not add up to the displayed total, the chart includes an `Unallocated` slice so the visual reconciles to the monthly estimate.
+The visible AI summary is followed by a folded detailed AI reviewer note and an open action queue. Well-Architected drilldowns include a Mermaid `radar-beta` chart when enough pillar scores are available, plus a table fallback for GitHub renderers that do not support radar charts yet. Cost drilldowns include a resource-cost pie chart, a projected-versus-optimized savings chart, and a compact service-cost table. If resource-level cost rows do not add up to the displayed total, the chart includes an `Unallocated` slice so the visual reconciles to the monthly estimate.
 
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
 
@@ -202,7 +206,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 
 ## Summaries and PR feedback
 
-- **`include_run_metadata`**: adds workflow metadata to markdown. In `mode: review`, the workflow run and artifact links appear in the `Open in CloudEval` section when available. Older CLI output is patched for compatibility. Other modes append a small metadata table.
+- **`include_run_metadata`**: adds workflow metadata to markdown. In `mode: review`, current CLI output renders workflow and artifact links as badges when available. Older review output gets a small appended metadata table instead of being rewritten. Other modes append the same compact metadata table.
 - **`summary_answer_jq`**: optional jq on stdout JSON to embed a short excerpt (e.g. `.reason`) in the job summary / gate summary.
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
 - **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one result comment (marker `<!-- cloudeval-action -->`). GitHub App-linked projects post the comment through the CloudEval App identity when the access key has `github:comment`; otherwise the action falls back to **github-actions[bot]**. The fallback and reactions require `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
