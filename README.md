@@ -14,7 +14,10 @@ Authentication uses a **scoped access key** (`cev_…`). Create keys in the app:
 
 ## Public example
 
-Use [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) as a clean public reference. It includes nested Azure ARM templates, `.cloudeval/config.yaml`, this action wired in `.github/workflows/cloudeval-review.yml`, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2).
+Use these public references:
+
+- [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) for Azure ARM. It includes nested ARM templates, `.cloudeval/config.yaml`, this action wired in `.github/workflows/cloudeval-review.yml`, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2).
+- [ganakailabs/cloudeval-aws-cloudformation-review-example](https://github.com/ganakailabs/cloudeval-aws-cloudformation-review-example) for AWS CloudFormation beta. It includes CloudFormation YAML and JSON templates, AWS scanner configuration, and a PR review workflow ready for good/bad gating once the CloudEval GitHub App is installed on the repository and CI secrets are configured.
 
 ## Quick start
 
@@ -39,6 +42,9 @@ jobs:
           access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
           project_id: ${{ secrets.CLOUDEVAL_PROJECT_ID }}
           mode: review
+          repo: ${{ github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
+          commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
           post_pr_comment: true
           upload_artifacts: true
 ```

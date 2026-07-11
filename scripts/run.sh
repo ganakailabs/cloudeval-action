@@ -20,6 +20,54 @@ run_url_value() {
   fi
 }
 
+github_event_value() {
+  local expr="$1"
+  [[ -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH:-}" ]] || return 1
+  command -v jq >/dev/null 2>&1 || return 1
+  jq -r "$expr // empty" "$GITHUB_EVENT_PATH" 2>/dev/null
+}
+
+pull_request_head_ref() {
+  github_event_value '.pull_request.head.ref'
+}
+
+pull_request_head_sha() {
+  github_event_value '.pull_request.head.sha'
+}
+
+resolve_review_ref() {
+  if [[ -n "${INPUT_REF:-}" ]]; then
+    printf '%s' "$INPUT_REF"
+    return 0
+  fi
+  local pr_ref
+  pr_ref="$(pull_request_head_ref || true)"
+  if [[ -n "$pr_ref" ]]; then
+    printf '%s' "$pr_ref"
+    return 0
+  fi
+  printf '%s' "${GITHUB_REF_NAME:-}"
+}
+
+resolve_review_commit_sha() {
+  local input_sha="${INPUT_COMMIT_SHA:-}"
+  local pr_sha
+  pr_sha="$(pull_request_head_sha || true)"
+  if [[ -n "$input_sha" ]]; then
+    if [[ -n "$pr_sha" && -n "${GITHUB_SHA:-}" && "$input_sha" == "$GITHUB_SHA" && "${GITHUB_REF:-}" == refs/pull/* ]]; then
+      printf '%s' "$pr_sha"
+    else
+      printf '%s' "$input_sha"
+    fi
+    return 0
+  fi
+  if [[ -n "$pr_sha" ]]; then
+    printf '%s' "$pr_sha"
+    return 0
+  fi
+  printf '%s' "${GITHUB_SHA:-}"
+}
+
 append_run_metadata() {
   [[ "${INPUT_INCLUDE_RUN_METADATA:-true}" != "true" ]] && return 0
   local url
@@ -241,6 +289,10 @@ json_string() {
 
 run_review_flow() {
   local out_rel="${INPUT_REVIEW_OUTPUT_DIR:-cloudeval-review}"
+  local review_ref
+  local review_commit_sha
+  review_ref="$(resolve_review_ref)"
+  review_commit_sha="$(resolve_review_commit_sha)"
   local review_args=(review)
   review_args+=("${BASE_ARGS[@]}")
   review_args+=(--output "$out_rel")
@@ -249,15 +301,11 @@ run_review_flow() {
   elif [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
     review_args+=(--repo "$GITHUB_REPOSITORY")
   fi
-  if [[ -n "${INPUT_REF:-}" ]]; then
-    review_args+=(--ref "$INPUT_REF")
-  elif [[ -n "${GITHUB_REF_NAME:-}" ]]; then
-    review_args+=(--ref "$GITHUB_REF_NAME")
+  if [[ -n "$review_ref" ]]; then
+    review_args+=(--ref "$review_ref")
   fi
-  if [[ -n "${INPUT_COMMIT_SHA:-}" ]]; then
-    review_args+=(--commit-sha "$INPUT_COMMIT_SHA")
-  elif [[ -n "${GITHUB_SHA:-}" ]]; then
-    review_args+=(--commit-sha "$GITHUB_SHA")
+  if [[ -n "$review_commit_sha" ]]; then
+    review_args+=(--commit-sha "$review_commit_sha")
   fi
   if [[ -n "${INPUT_SOURCE_ROOT:-}" ]]; then
     review_args+=(--source-root "$INPUT_SOURCE_ROOT")

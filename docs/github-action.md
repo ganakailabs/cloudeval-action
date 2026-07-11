@@ -42,7 +42,10 @@ All LLM-facing modes use **`--format json`** and **`--non-interactive`**.
 
 Use review mode for pull requests after the repository is already linked to a CloudEval GitHub App project.
 
-Reference implementation: [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) contains nested ARM templates, `.cloudeval/config.yaml`, a CloudEval review workflow, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2). Fork it when you want to test this action against your own CloudEval project.
+Reference implementations:
+
+- [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) contains nested ARM templates, `.cloudeval/config.yaml`, a CloudEval review workflow, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2). Fork it when you want to test Azure review gates against your own CloudEval project.
+- [ganakailabs/cloudeval-aws-cloudformation-review-example](https://github.com/ganakailabs/cloudeval-aws-cloudformation-review-example) contains AWS CloudFormation YAML/JSON templates, `.cloudeval/config.yaml`, and a CloudEval review workflow for AWS CloudFormation beta. AWS review uses reviewed AWS Well-Architected mappings where available, Checkov enrichment, and cfn-lint deployment-quality validation; unsupported AWS scoring areas should remain visibly unassessed.
 
 Setup checklist:
 
@@ -70,6 +73,9 @@ jobs:
           access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
           project_id: ${{ secrets.CLOUDEVAL_PROJECT_ID }}
           mode: review
+          repo: ${{ github.repository }}
+          ref: ${{ github.head_ref || github.ref_name }}
+          commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
           post_pr_comment: true
           upload_artifacts: true
 ```
@@ -77,8 +83,8 @@ jobs:
 Defaults:
 
 - `repo`: `github.repository`
-- `ref`: `github.ref_name`
-- `commit_sha`: `github.sha`
+- `ref`: pull request head branch when available, otherwise `github.ref_name`
+- `commit_sha`: pull request head SHA when available, otherwise `github.sha`
 - `review_output_dir`: `cloudeval-review`
 - `review_wait`: `true`; set `false` only if you want `cloudeval review --no-wait`
 - `ai_summary`: `true`; set `false` to omit the AI-written summary from `review.json`, `review.md`, and PR comments. The summary starts with direct prose. The detailed AI reviewer note folds by default and contains evidence, reasoning, and next actions when available.
