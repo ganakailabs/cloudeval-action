@@ -5,6 +5,7 @@ set -euo pipefail
 OUT_DIR="${RUNNER_TEMP:-/tmp}/cloudeval-action-$$"
 mkdir -p "$OUT_DIR"
 JSON_FILE="$OUT_DIR/cloudeval-out.json"
+CLI_LOG_FILE="$OUT_DIR/cloudeval-cli.log"
 SUMMARY_FILE="$OUT_DIR/summary.md"
 ARTIFACT_DIR="$OUT_DIR/artifact-staging"
 mkdir -p "$ARTIFACT_DIR"
@@ -111,6 +112,8 @@ write_outputs() {
   summary_md="$(cat "$SUMMARY_FILE")"
   local run_url
   run_url="$(run_url_value)"
+  local sarif_path
+  sarif_path="$(json_string '.data.outputs.sarif.file' || true)"
 
   {
     echo "result=$result"
@@ -120,6 +123,7 @@ write_outputs() {
     echo "run_url=$run_url"
     [[ -n "$extracted" ]] && echo "score=$extracted"
     [[ -n "$extracted" ]] && echo "extracted_value=$extracted"
+    [[ -n "$sarif_path" ]] && echo "sarif_path=$sarif_path"
     echo "summary_markdown<<CEV_SUMMARY_EOF"
     echo "$summary_md"
     echo "CEV_SUMMARY_EOF"
@@ -153,6 +157,134 @@ summarize_fail() {
   stage_artifacts
   write_outputs fail "" ""
   exit 1
+}
+
+safe_file_preview() {
+  local file="$1"
+  local max_chars="${2:-1200}"
+  [[ -s "$file" ]] || return 0
+  head -c "$max_chars" "$file" | tr -d '\r' | tr -cd '\11\12\15\40-\176' || true
+}
+
+extract_error_field() {
+  local field="$1"
+  local file
+  for file in "$JSON_FILE" "$CLI_LOG_FILE"; do
+    [[ -s "$file" ]] || continue
+    if command -v jq >/dev/null 2>&1; then
+      local value
+      value="$(jq -er ".${field} // .error.${field} // empty" "$file" 2>/dev/null | head -n 1 || true)"
+      if [[ -n "$value" && "$value" != "null" ]]; then
+        printf '%s' "$value"
+        return 0
+      fi
+    fi
+    local sed_expr
+    sed_expr="s/.*\"${field}\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p"
+    value="$(sed -n "$sed_expr" "$file" | head -n 1 || true)"
+    if [[ -n "$value" ]]; then
+      printf '%s' "$value"
+      return 0
+    fi
+  done
+  return 1
+}
+
+combined_cli_preview() {
+  {
+    safe_file_preview "$JSON_FILE" 800
+    echo ""
+    safe_file_preview "$CLI_LOG_FILE" 1200
+  } | sed '/^[[:space:]]*$/d' | head -c 1600
+}
+
+summarize_review_cli_failure() {
+  local status="${1:-1}"
+  local code message preview
+  code="$(extract_error_field code || true)"
+  message="$(extract_error_field message || true)"
+  preview="$(combined_cli_preview || true)"
+
+  if [[ "$code" == "credential_expired" ]] || printf '%s\n' "$preview" | grep -qi 'credential_expired\|access-key credential has expired'; then
+    {
+      echo "### CloudEval failed"
+      echo ""
+      echo "CloudEval review could not run because the **CloudEval access key is expired**."
+      echo ""
+      echo "#### Next steps: Renew the repository secret"
+      echo ""
+      echo "1. In CloudEval, open **Developer -> API & CLI access keys**."
+      echo "2. Create a new **GitHub Actions CI** key scoped to this project."
+      echo "3. Include the review/report capabilities your workflow uses. Add **github:comment** for CloudEval App PR comments and **github:checks** for native Check Runs."
+      echo "4. Update the repository secret **CLOUDEVAL_ACCESS_KEY** in GitHub."
+      echo "5. Re-run this workflow."
+      echo ""
+      echo "Docs: [Renew an expired access key](https://docs.cloudeval.ai/workflows/github-actions#renew-an-expired-access-key)"
+      echo ""
+      echo "#### Error"
+      echo ""
+      echo "- **Code:** \`${code:-credential_expired}\`"
+      [[ -n "$message" ]] && echo "- **Message:** ${message}"
+      append_run_metadata
+    } >"$SUMMARY_FILE"
+    stage_artifacts
+    write_outputs fail "" ""
+    exit "$status"
+  fi
+
+  if [[ "$code" == "credential_revoked" || "$code" == "invalid_credential" || "$code" == "unauthorized" ]] ||
+    printf '%s\n' "$preview" | grep -qi 'invalid.*access key\|credential_revoked\|unauthorized'; then
+    {
+      echo "### CloudEval failed"
+      echo ""
+      echo "CloudEval review could not authenticate with the configured **CLOUDEVAL_ACCESS_KEY**."
+      echo ""
+      echo "#### Next steps"
+      echo ""
+      echo "1. Confirm the GitHub secret **CLOUDEVAL_ACCESS_KEY** is set on this repository or environment."
+      echo "2. Create a new **GitHub Actions CI** key in CloudEval if the current key was revoked or rotated."
+      echo "3. Confirm the key is scoped to the target project and includes the capabilities used by this workflow."
+      echo "4. Re-run this workflow."
+      echo ""
+      echo "Docs: [GitHub Actions authentication](https://docs.cloudeval.ai/workflows/github-actions#renew-an-expired-access-key)"
+      echo ""
+      echo "#### Error"
+      echo ""
+      [[ -n "$code" ]] && echo "- **Code:** \`${code}\`"
+      [[ -n "$message" ]] && echo "- **Message:** ${message}"
+      append_run_metadata
+    } >"$SUMMARY_FILE"
+    stage_artifacts
+    write_outputs fail "" ""
+    exit "$status"
+  fi
+
+  {
+    echo "### CloudEval failed"
+    echo ""
+    echo "CloudEval review did not produce a usable review summary."
+    echo ""
+    echo "#### Next steps"
+    echo ""
+    echo "1. Check that **CLOUDEVAL_ACCESS_KEY** and **CLOUDEVAL_PROJECT_ID** are set."
+    echo "2. Confirm the project is linked to this GitHub repository and branch."
+    echo "3. Confirm the runner has no unexpected local changes, or set **ignore_dirty: \"true\"** intentionally."
+    echo "4. Re-run the workflow after correcting the configuration."
+    echo ""
+    echo "Docs: [Troubleshoot GitHub Actions review](https://docs.cloudeval.ai/workflows/github-actions#troubleshooting)"
+    if [[ -n "$preview" ]]; then
+      echo ""
+      echo "#### CLI output"
+      echo ""
+      echo '```text'
+      echo "$preview"
+      echo '```'
+    fi
+    append_run_metadata
+  } >"$SUMMARY_FILE"
+  stage_artifacts
+  write_outputs fail "" ""
+  exit "$status"
 }
 
 MODE_RAW="${INPUT_MODE:-ask}"
@@ -286,11 +418,39 @@ run_review_flow() {
   if [[ -n "${INPUT_AI_SUMMARY_PROFILE:-}" ]]; then
     review_args+=(--ai-summary-profile "$INPUT_AI_SUMMARY_PROFILE")
   fi
+  if [[ "${INPUT_GITHUB_CHECKS:-false}" == "true" ]]; then
+    review_args+=(--github-checks)
+  fi
+  if [[ -n "${INPUT_CHECKS_ANNOTATION_LIMIT:-}" ]]; then
+    review_args+=(--checks-annotation-limit "$INPUT_CHECKS_ANNOTATION_LIMIT")
+  fi
+  if [[ "${INPUT_CHECKS_ALL_FILES:-false}" == "true" ]]; then
+    review_args+=(--checks-all-files)
+  fi
+  if [[ "${INPUT_CHECKS_INCLUDE_NOTICES:-false}" == "true" ]]; then
+    review_args+=(--checks-include-notices)
+  fi
+  if [[ "${INPUT_SARIF:-false}" == "true" ]]; then
+    review_args+=(--sarif)
+  fi
+  if [[ -n "${INPUT_SARIF_OUTPUT:-}" ]]; then
+    review_args+=(--sarif-output "$INPUT_SARIF_OUTPUT")
+  fi
 
   local status=0
-  cloudeval "${review_args[@]}" | tee "$JSON_FILE" || status=$?
+  : >"$JSON_FILE"
+  : >"$CLI_LOG_FILE"
+  set +e
+  cloudeval "${review_args[@]}" >"$JSON_FILE" 2>"$CLI_LOG_FILE"
+  status=$?
+  set -e
+  [[ -s "$JSON_FILE" ]] && cat "$JSON_FILE"
+  [[ -s "$CLI_LOG_FILE" ]] && cat "$CLI_LOG_FILE" >&2
+  if [[ "$status" -ne 0 && ! -f "$out_rel/review.md" ]]; then
+    summarize_review_cli_failure "$status"
+  fi
   if [[ ! -s "$JSON_FILE" ]]; then
-    summarize_fail "cloudeval review produced no stdout json. Check auth, project_id, GitHub repo linkage, and dirty working tree status."
+    summarize_review_cli_failure 1
   fi
   validate_cli_json
 
