@@ -99,6 +99,12 @@ while IFS= read -r annotation; do
     echo "pr-line-comments: failed to comment on ${path}:${line}; continuing" >&2
   fi
   rm -f "$tmp"
-done < <(jq -c '(.data // .).github.checks.annotations // [] | .[]' "$JSON_PATH")
+done < <(
+  jq -c '
+    (.data // .).github.checks.annotations // []
+    | .[]
+    | select((((.raw_details // "") | tostring) | contains("gate_summary")) | not)
+  ' "$JSON_PATH"
+)
 
 echo "pr-line-comments: posted ${posted} line comment(s)"

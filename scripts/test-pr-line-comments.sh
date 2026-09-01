@@ -58,15 +58,25 @@ cat >"$TMP_DIR/review.json" <<'JSON'
             "path": "azuredeploy.json",
             "start_line": 30,
             "annotation_level": "failure",
-            "title": "Cloudeval gate failed",
-            "message": "Gate evidence: overall score 48 is below 60."
+            "title": "Storage account permits public access",
+            "message": "Set allowBlobPublicAccess to false.",
+            "raw_details": "well_architected · high"
           },
           {
             "path": "nested/database.json",
             "start_line": 12,
             "annotation_level": "warning",
-            "title": "Cloudeval review context",
-            "message": "Review needs attention."
+            "title": "SQL public network access",
+            "message": "Disable public network access for production SQL servers.",
+            "raw_details": "policy_check · warning"
+          },
+          {
+            "path": "nested/database.json",
+            "start_line": 14,
+            "annotation_level": "failure",
+            "title": "Cloudeval gate failed",
+            "message": "Gate evidence: overall score 48 is below 60.",
+            "raw_details": "gate_summary · fail"
           }
         ]
       }
@@ -89,8 +99,9 @@ bash "$ROOT_DIR/scripts/pr-line-comments.sh" >"$TMP_DIR/output.txt"
 grep -F "pulls/comments/777" "$TMP_DIR/deletes.txt" >/dev/null
 test "$(find "$TMP_DIR/posts" -type f | wc -l | tr -d ' ')" = "2"
 jq -e '.path == "azuredeploy.json" and .line == 30 and .side == "RIGHT" and .commit_id == "abcdef123456"' "$TMP_DIR/posts/comment-0.json" >/dev/null
-jq -e '.body | contains("<!-- cloudeval-line-comment -->") and contains("Cloudeval gate failed") and contains("overall score 48")' "$TMP_DIR/posts/comment-0.json" >/dev/null
+jq -e '.body | contains("<!-- cloudeval-line-comment -->") and contains("Storage account permits public access") and contains("allowBlobPublicAccess")' "$TMP_DIR/posts/comment-0.json" >/dev/null
 jq -e '.path == "nested/database.json" and .line == 12' "$TMP_DIR/posts/comment-1.json" >/dev/null
+! grep -R "overall score 48" "$TMP_DIR/posts" >/dev/null
 grep -F "pr-line-comments: posted 2 line comment(s)" "$TMP_DIR/output.txt" >/dev/null
 
 echo "pr line comments test passed"

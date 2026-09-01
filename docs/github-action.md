@@ -286,7 +286,7 @@ Use these when reviewers should see Cloudeval findings in GitHub's native review
 | SARIF file generation | `sarif: "true"` | None by itself | reports/project read capabilities |
 | GitHub code scanning upload | `github/codeql-action/upload-sarif` | Workflow token: `security-events: write` | None beyond SARIF generation |
 
-Annotations and PR line comments are created from source-mapped Cloudeval findings. If the backend report only provides aggregate gate failures, the action adds a conservative gate-summary annotation to changed IaC files instead of inventing exact rule locations. By default Cloudeval annotates changed files only. Set `checks_all_files: "true"` for repository-wide annotations or `checks_include_notices: "true"` when informational findings should appear.
+Annotations and PR line comments are created only from source-mapped Cloudeval findings. If the backend report only provides aggregate gate failures, those failures remain in the PR summary comment instead of being attached to arbitrary changed lines. By default Cloudeval annotates changed files only. Set `checks_all_files: "true"` for repository-wide annotations or `checks_include_notices: "true"` when informational findings should appear.
 
 Use `pr_line_comments: "true"` only when you want visible review comments in the **Files changed** tab. The action deletes stale comments with marker `<!-- cloudeval-line-comment -->` from previous `github-actions[bot]` runs, then posts up to `pr_line_comment_limit` fresh comments. This mode is intentionally separate from `emit_annotations` because review comments are more visible and can become noisy on large PRs.
 
