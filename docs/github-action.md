@@ -148,6 +148,8 @@ The review itself is written as one idempotent PR comment after the run has resu
 
 With `emit_annotations: true`, the action emits GitHub Actions line annotations from the review data. These annotations appear in the workflow Checks UI and, when GitHub can map the location to the PR diff, beside changed lines. This path uses the normal workflow run and does not require Cloudeval GitHub App Checks permission.
 
+With `pr_line_comments: true`, the action can also create review comments in the **Files changed** tab. For GitHub App-linked projects, the action sends the source-mapped findings to Cloudeval and Cloudeval posts/replaces those comments through the installed GitHub App, so the visible author is `cloudeval-ai[bot]`. If the App endpoint is configured but fails, the action does not fall back to workflow-token line comments; this prevents synthetic author identity on code review lines.
+
 When `github_checks: true`, the action also asks Cloudeval to post a native GitHub Check Run using the same GitHub App installation. Findings with source paths become inline annotations on the changed files by default. This keeps the workflow runner free of GitHub App private keys; it only sends the Cloudeval access key to the Cloudeval API. The app installation must include **Checks: read and write**, and the access key must include `github:checks`.
 
 Example gates:
@@ -281,14 +283,15 @@ Use these when reviewers should see Cloudeval findings in GitHub's native review
 | --- | --- | --- | --- |
 | Cloudeval App Check Run | `github_checks: "true"` | Cloudeval GitHub App: **Checks: read and write** | `github:checks` |
 | Workflow line annotations | `emit_annotations: "true"` | Workflow token only | project/report read capabilities |
-| PR review line comments | `pr_line_comments: "true"` | Workflow token: `pull-requests: write` | project/report read capabilities |
+| Cloudeval App PR line comments | `pr_line_comments: "true"` with a GitHub-linked `project_id` | Cloudeval GitHub App: **Pull requests: read and write** | `github:comment` plus project/report read capabilities |
+| Workflow-token PR line comments fallback | `pr_line_comments: "true"` without the App path | Workflow token: `pull-requests: write` | project/report read capabilities |
 | Cloudeval App Check Run annotations | `github_checks: "true"` | Cloudeval GitHub App: **Checks: read and write** | `github:checks` |
 | SARIF file generation | `sarif: "true"` | None by itself | reports/project read capabilities |
 | GitHub code scanning upload | `github/codeql-action/upload-sarif` | Workflow token: `security-events: write` | None beyond SARIF generation |
 
 Annotations and PR line comments are created only from source-mapped Cloudeval findings. If the backend report only provides aggregate gate failures, those failures remain in the PR summary comment instead of being attached to arbitrary changed lines. By default Cloudeval annotates changed files only. Set `checks_all_files: "true"` for repository-wide annotations or `checks_include_notices: "true"` when informational findings should appear.
 
-Use `pr_line_comments: "true"` only when you want visible review comments in the **Files changed** tab. The action deletes stale comments with marker `<!-- cloudeval-line-comment -->` from previous `github-actions[bot]` runs, then posts up to `pr_line_comment_limit` fresh comments. This mode is intentionally separate from `emit_annotations` because review comments are more visible and can become noisy on large PRs.
+Use `pr_line_comments: "true"` only when you want visible review comments in the **Files changed** tab. For GitHub App-linked projects, Cloudeval deletes stale `<!-- cloudeval-line-comment -->` comments from `cloudeval-ai[bot]`, then posts up to `pr_line_comment_limit` fresh comments. If no current findings map to changed lines, the same call clears stale App comments. This mode is intentionally separate from `emit_annotations` because review comments are more visible and can become noisy on large PRs.
 
 SARIF is written to `review.sarif.json` under `review_output_dir` unless `sarif_output` is set. The composite action exposes the path as `steps.<id>.outputs.sarif_path`; upload it with GitHub's SARIF upload action as shown in the review workflow above.
 
@@ -325,7 +328,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
 - **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one result comment (marker `<!-- cloudeval-action -->`). GitHub App-linked projects post the comment through the Cloudeval App identity when the access key has `github:comment`; otherwise the action falls back to **github-actions[bot]**. The fallback and reactions require `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
 - **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix. Review comments are expanded by default so the one-line result is visible, while detailed review sections can still fold themselves.
-- **`pr_line_comments`**, **`pr_line_comment_limit`**: optionally post bounded review comments directly on changed PR lines using the same annotation payload as workflow annotations.
+- **`pr_line_comments`**, **`pr_line_comment_limit`**: optionally post bounded review comments directly on changed PR lines using the same annotation payload as workflow annotations. GitHub App-linked projects use `cloudeval-ai[bot]`; workflow-token line comments are only a fallback when the App path is not configured.
 - **`github_checks`**, **`github_check_name`**, **`checks_annotation_limit`**, **`checks_all_files`**, **`checks_include_notices`**: enable Cloudeval App-authored Check Runs and tune annotation volume.
 - **`sarif`**, **`sarif_output`**: write source-mapped SARIF for upload to GitHub code scanning or another SARIF consumer.
 
