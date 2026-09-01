@@ -46,7 +46,7 @@ fi
 
 grep -F "CloudEval access key is expired" "$GITHUB_OUTPUT" >/dev/null
 grep -F "Renew the repository secret" "$GITHUB_OUTPUT" >/dev/null
-grep -F "https://docs.cloudeval.ai/workflows/github-actions#renew-an-expired-access-key" "$GITHUB_OUTPUT" >/dev/null
+grep -F "https://docs.cloudeval.ai/guides/review/github-actions#renew-an-expired-access-key" "$GITHUB_OUTPUT" >/dev/null
 grep -F "credential_expired" "$GITHUB_OUTPUT" >/dev/null
 
 echo "review auth failure summary test passed"

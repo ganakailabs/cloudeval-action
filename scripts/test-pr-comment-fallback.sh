@@ -72,7 +72,7 @@ CloudEval access key is expired.
 
 Next steps: Renew the repository secret.
 
-https://docs.cloudeval.ai/workflows/github-actions#renew-an-expired-access-key
+https://docs.cloudeval.ai/guides/review/github-actions#renew-an-expired-access-key
 MD
 
 bash "$ROOT_DIR/scripts/pr-comment.sh" >/tmp/pr-comment-fallback.out
@@ -80,6 +80,6 @@ bash "$ROOT_DIR/scripts/pr-comment.sh" >/tmp/pr-comment-fallback.out
 jq -e '.body | contains("<!-- cloudeval-action -->")' "$CAPTURED_COMMENT_JSON" >/dev/null
 jq -e '.body | contains("CloudEval access key is expired")' "$CAPTURED_COMMENT_JSON" >/dev/null
 jq -e '.body | contains("Renew the repository secret")' "$CAPTURED_COMMENT_JSON" >/dev/null
-jq -e '.body | contains("https://docs.cloudeval.ai/workflows/github-actions#renew-an-expired-access-key")' "$CAPTURED_COMMENT_JSON" >/dev/null
+jq -e '.body | contains("https://docs.cloudeval.ai/guides/review/github-actions#renew-an-expired-access-key")' "$CAPTURED_COMMENT_JSON" >/dev/null
 
 echo "pr comment fallback guidance test passed"
