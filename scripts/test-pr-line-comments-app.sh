@@ -90,7 +90,8 @@ export PATH="$BIN_DIR:$PATH"
 export CAPTURE_DIR="$TMP_DIR"
 export JSON_PATH="$TMP_DIR/review.json"
 export CLOUDEVAL_ACCESS_KEY="cev_mock"
-export INPUT_BASE_URL="https://cloudeval.ai"
+unset INPUT_BASE_URL
+unset CLOUDEVAL_BASE_URL
 export INPUT_PROJECT_ID="project-123"
 export PR_NUMBER="8"
 export REPO="ganakailabs/example"
@@ -99,7 +100,7 @@ export INPUT_PR_LINE_COMMENT_LIMIT="5"
 
 bash "$ROOT_DIR/scripts/pr-line-comments.sh" >"$TMP_DIR/output.txt"
 
-grep -F "https://cloudeval.ai/api/v1/projects/project-123/github/pr-line-comments" "$TMP_DIR/app-url.txt" >/dev/null
+grep -F "https://cloudeval.ai/api/proxy/v1/projects/project-123/github/pr-line-comments" "$TMP_DIR/app-url.txt" >/dev/null
 jq -e '
   .repo_full_name == "ganakailabs/example"
   and .pull_request_number == 8
