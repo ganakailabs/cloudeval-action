@@ -146,6 +146,46 @@ on:
         type: string
         required: false
         default: cloudeval-review
+      github_checks:
+        type: boolean
+        required: false
+        default: false
+      github_check_name:
+        type: string
+        required: false
+        default: Cloudeval
+      checks_annotation_limit:
+        type: string
+        required: false
+        default: "50"
+      checks_all_files:
+        type: boolean
+        required: false
+        default: false
+      checks_include_notices:
+        type: boolean
+        required: false
+        default: false
+      emit_annotations:
+        type: boolean
+        required: false
+        default: true
+      pr_line_comments:
+        type: boolean
+        required: false
+        default: false
+      pr_line_comment_limit:
+        type: string
+        required: false
+        default: "5"
+      sarif:
+        type: boolean
+        required: false
+        default: false
+      sarif_output:
+        type: string
+        required: false
+        default: ""
       working_directory:
         type: string
         required: false
@@ -190,6 +230,8 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  checks: write
+  security-events: write
 
 jobs:
   run:
@@ -234,6 +276,16 @@ jobs:
           ai_summary_mode: ${{ inputs.ai_summary_mode }}
           ai_summary_profile: ${{ inputs.ai_summary_profile }}
           review_output_dir: ${{ inputs.review_output_dir }}
+          github_checks: ${{ inputs.github_checks }}
+          github_check_name: ${{ inputs.github_check_name }}
+          checks_annotation_limit: ${{ inputs.checks_annotation_limit }}
+          checks_all_files: ${{ inputs.checks_all_files }}
+          checks_include_notices: ${{ inputs.checks_include_notices }}
+          emit_annotations: ${{ inputs.emit_annotations }}
+          pr_line_comments: ${{ inputs.pr_line_comments }}
+          pr_line_comment_limit: ${{ inputs.pr_line_comment_limit }}
+          sarif: ${{ inputs.sarif }}
+          sarif_output: ${{ inputs.sarif_output }}
           working_directory: ${{ inputs.working_directory }}
           post_pr_comment: ${{ inputs.post_pr_comment }}
           pr_comment_collapsed_details: ${{ inputs.pr_comment_collapsed_details }}

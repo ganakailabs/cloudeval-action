@@ -30,6 +30,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  checks: write # only needed for the optional Cloudeval App Check Run
   security-events: write # only needed when uploading SARIF to code scanning
 
 jobs:
@@ -37,6 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
       - id: cloudeval
         uses: ganakailabs/cloudeval-action@v1
         with:
@@ -45,6 +48,9 @@ jobs:
           mode: review
           post_pr_comment: true
           github_checks: true
+          emit_annotations: true
+          # Optional: posts bounded comments directly on changed PR lines.
+          pr_line_comments: false
           sarif: true
           upload_artifacts: true
       - uses: github/codeql-action/upload-sarif@v4
@@ -66,7 +72,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
 | **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with a merge-gate table, Cloudeval report badges, visible AI summary, folded detailed AI reviewer note, action queue, Well-Architected radar/table drilldown, resource-cost pie, and savings impact chart. For GitHub App-linked projects, comment posting and optional Check Runs are delegated to the Cloudeval GitHub App so the comment/check uses the Cloudeval App identity and logo; otherwise comments fall back to `github-actions[bot]`. |
-| **Checks and SARIF** | Optional GitHub Check Run annotations for source-mapped findings, plus `review.sarif.json` output for GitHub code scanning upload. |
+| **Line annotations, comments, and SARIF** | Emits GitHub Actions line annotations by default from source-mapped findings or a conservative gate-summary fallback on changed IaC files. Set `pr_line_comments: true` to also post bounded PR review comments on changed lines. Optional Cloudeval App Check Runs and `review.sarif.json` code scanning upload use the same review evidence. |
 | **Artifacts** | Staged JSON, summary, and downloaded reports with configurable **retention-days**. |
 | **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `artifact_path`, `run_url`, `sarif_path`, `check_run_url`. |
 | **Reusable workflow** | [cloudeval-reusable.yml](.github/workflows/cloudeval-reusable.yml) forwards secrets and the same review/report inputs to `ganakailabs/cloudeval-action@v1`. |
@@ -83,12 +89,12 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 - **`gate_threshold`**, **`gate_jq`**, **`gate_operator`**
 - **`summary_answer_jq`** — e.g. `.reason` or `.answer` for human-readable summary text
 - **`reports_*`**, **`quiet`**, **`progress`**, **`model`**, **`profile`**
-- **`post_pr_comment`**, **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**
-- **`github_checks`**, **`github_check_name`**, **`checks_annotation_limit`**, **`checks_all_files`**, **`checks_include_notices`**, **`sarif`**, **`sarif_output`**
+- **`post_pr_comment`**, **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_line_comments`**, **`pr_line_comment_limit`**
+- **`github_checks`**, **`github_check_name`**, **`checks_annotation_limit`**, **`checks_all_files`**, **`checks_include_notices`**, **`emit_annotations`**, **`sarif`**, **`sarif_output`**
 - **`upload_artifacts`**, **`artifact_name`**, **`artifact_retention_days`**
 - **`include_run_metadata`**, **`job_summary_title`**
 
-Review PR comments are expanded by default. The visible header separates the configured **Merge gate** result from observed Well-Architected posture, validation, policy checks, and cost budget status. Cloudeval project, report, PDF, workflow, and artifact links render as badges. The `PDF` badge points to the Cloudeval-hosted PDF; when `.cloudeval/config.yaml` enables `ci.review.outputs.pdf.enabled` and `upload_artifacts: true`, the uploaded GitHub artifact also contains `review/review.pdf`, including failed review runs. The AI summary stays visible, while the detailed AI reviewer note folds by default; action queue, Well-Architected, cost, validation, and architecture evidence sections use GitHub-native disclosures. When `github_checks: true`, the action asks the Cloudeval GitHub App to post a native Check Run with inline annotations for mapped findings. When `sarif: true`, the action writes SARIF and exposes `sarif_path` for `github/codeql-action/upload-sarif`.
+Review PR comments are expanded by default. The visible header separates the configured **Merge gate** result from observed Well-Architected posture, validation, policy checks, and cost budget status. Cloudeval project, report, PDF, workflow, and artifact links render as badges. The `PDF` badge points to the Cloudeval-hosted PDF; when `.cloudeval/config.yaml` enables `ci.review.outputs.pdf.enabled` and `upload_artifacts: true`, the uploaded GitHub artifact also contains `review/review.pdf`, including failed review runs. The AI summary stays visible, while the detailed AI reviewer note folds by default; action queue, Well-Architected, cost, validation, and architecture evidence sections use GitHub-native disclosures. With `emit_annotations: true`, the action emits GitHub Actions line annotations from `review.json`. With `pr_line_comments: true`, it also posts bounded review comments on changed lines and replaces stale Cloudeval line comments on reruns. When `github_checks: true`, the action also asks the Cloudeval GitHub App to post a native Check Run. When `sarif: true`, the action writes SARIF and exposes `sarif_path` for `github/codeql-action/upload-sarif`.
 
 PDF artifact output supports `report_type` (`all`, `architecture`, `cost`, `unit_tests`), `verbosity` (`brief`, `detailed`, `evidence`), and `fail_on_error` for teams that want PDF export failures to block the review.
 
@@ -96,8 +102,9 @@ PDF artifact output supports `report_type` (`all`, `architecture`, `cost`, `unit
 
 - Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for fallback PR comments and reactions).
 - Valid Cloudeval access key with capabilities for the operations you run.
-- For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
+- For PR comments and PR line comments from **forks**, GitHub may block token permissions; document that for contributors.
 - To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `block_pull_request` (or the older compatible `required` value); low score labels such as `CRITICAL` are informational unless your gates require them to fail.
+- Line annotations from `emit_annotations` are created by the workflow run and do not require Cloudeval GitHub App Checks permission.
 - Native Cloudeval Check Runs require the Cloudeval GitHub App to be installed on the repository with **Checks: read and write** permission, and the Cloudeval access key must include `github:checks`.
 
 ## Documentation

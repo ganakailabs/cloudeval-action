@@ -308,6 +308,21 @@ if [[ -n "${INPUT_AGENT_TASK:-}" ]]; then
   USE_AGENT=true
 fi
 
+prepare_review_git_refs() {
+  [[ "${INPUT_MODE:-}" == "review" ]] || return 0
+  [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]] || return 0
+  [[ -n "${GITHUB_BASE_REF:-}" ]] || return 0
+  command -v git >/dev/null 2>&1 || return 0
+
+  if git rev-parse --verify --quiet "origin/${GITHUB_BASE_REF}" >/dev/null; then
+    return 0
+  fi
+
+  if ! git fetch --no-tags --depth=1 origin "+refs/heads/${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}" >/dev/null 2>&1; then
+    echo "::warning::Cloudeval could not fetch pull request base branch origin/${GITHUB_BASE_REF}; diff-based annotations may be limited."
+  fi
+}
+
 run_llm() {
   local prompt="$1"
   if [[ "$USE_AGENT" == true ]]; then
@@ -375,6 +390,7 @@ run_review_flow() {
   local out_rel="${INPUT_REVIEW_OUTPUT_DIR:-cloudeval-review}"
   local review_args=(review)
   review_args+=("${BASE_ARGS[@]}")
+  prepare_review_git_refs
   review_args+=(--output "$out_rel")
   if [[ -n "${INPUT_REPO:-}" ]]; then
     review_args+=(--repo "$INPUT_REPO")
@@ -418,7 +434,7 @@ run_review_flow() {
   if [[ -n "${INPUT_AI_SUMMARY_PROFILE:-}" ]]; then
     review_args+=(--ai-summary-profile "$INPUT_AI_SUMMARY_PROFILE")
   fi
-  if [[ "${INPUT_GITHUB_CHECKS:-false}" == "true" ]]; then
+  if [[ "${INPUT_GITHUB_CHECKS:-false}" == "true" || "${INPUT_EMIT_ANNOTATIONS:-true}" == "true" ]]; then
     review_args+=(--github-checks)
   fi
   if [[ -n "${INPUT_CHECKS_ANNOTATION_LIMIT:-}" ]]; then
