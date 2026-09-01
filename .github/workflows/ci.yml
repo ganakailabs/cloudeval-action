@@ -15,7 +15,16 @@ jobs:
         run: ruby -e "require 'yaml'; YAML.load_file('action.yml')"
 
       - name: Bash syntax
-        run: bash -n scripts/run.sh && bash -n scripts/pr-comment.sh && bash -n scripts/pr-reaction.sh
+        run: bash -n scripts/run.sh && bash -n scripts/pr-comment.sh && bash -n scripts/pr-reaction.sh && bash -n scripts/check-run.sh && bash -n scripts/test-check-run.sh && bash -n scripts/test-review-auth-failure.sh && bash -n scripts/test-pr-comment-fallback.sh
+
+      - name: Check Run payload bridge
+        run: bash scripts/test-check-run.sh
+
+      - name: Review auth failure summary
+        run: bash scripts/test-review-auth-failure.sh
+
+      - name: PR comment fallback guidance
+        run: bash scripts/test-pr-comment-fallback.sh
 
   mock-gate:
     runs-on: ubuntu-latest

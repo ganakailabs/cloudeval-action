@@ -25,6 +25,39 @@ For `mode: review`, checked-out **repository files** are used to identify the re
 
 Do not commit raw keys. Rotate keys from the Developer workspace if exposed.
 
+### Renew an expired access key
+
+CloudEval access keys are intentionally time-limited credentials. They are **not renewed in place**, because GitHub repository secrets are write-only and the original secret value cannot be read back.
+
+When a workflow fails with `credential_expired`:
+
+1. Open CloudEval and go to **Developer → API & CLI access keys**.
+2. Create a new **GitHub Actions CI** key scoped to the CloudEval project used by the workflow.
+3. Include the capabilities your workflow uses:
+   - project/report read and review capabilities for `mode: review`
+   - `review:summary` when AI summaries are enabled
+   - `github:comment` for CloudEval App-authored PR comments
+   - `github:checks` for native CloudEval Check Runs
+4. In GitHub, open the repository or environment secrets and replace **`CLOUDEVAL_ACCESS_KEY`** with the new key.
+5. Re-run the failed workflow.
+6. Revoke or delete the old key in CloudEval if it is still listed.
+
+For CLI-driven rotation, create the key from an authenticated local session, then update the GitHub secret:
+
+```bash
+cloudeval credentials create \
+  --name "GitHub Actions CI - owner/repo" \
+  --template ci \
+  --project "$CLOUDEVAL_PROJECT_ID" \
+  --expires 90d \
+  --show-secret \
+  --format json
+
+gh secret set CLOUDEVAL_ACCESS_KEY --repo owner/repo
+```
+
+Never print the new secret in CI logs. Run the command locally or in a secure administrative environment.
+
 ## Modes (`mode` input)
 
 | Mode | Behavior |
@@ -47,7 +80,7 @@ Reference implementation: [ganakailabs/cloudeval-azure-arm-review-example](https
 Setup checklist:
 
 1. Install the **CloudEval GitHub App** on the repository and create/import the CloudEval project from that repository.
-2. Create a **GitHub Actions CI** access key in CloudEval, scoped to that project. Include `github:comment` when you want comments posted by the CloudEval GitHub App identity.
+2. Create a **GitHub Actions CI** access key in CloudEval, scoped to that project. Include `github:comment` when you want comments posted by the CloudEval GitHub App identity and `github:checks` when you want native GitHub Check Runs.
 3. Add `CLOUDEVAL_ACCESS_KEY` and `CLOUDEVAL_PROJECT_ID` as GitHub repository or environment secrets.
 4. Add the workflow below and make its check required in branch protection if it should block merges.
 
@@ -56,6 +89,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  security-events: write # only needed for the optional SARIF upload step
 
 on:
   pull_request:
@@ -65,13 +99,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ganakailabs/cloudeval-action@v1
+      - id: cloudeval
+        uses: ganakailabs/cloudeval-action@v1
         with:
           access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}
           project_id: ${{ secrets.CLOUDEVAL_PROJECT_ID }}
           mode: review
           post_pr_comment: true
+          github_checks: true
+          sarif: true
           upload_artifacts: true
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.cloudeval.outputs.sarif_path != ''
+        with:
+          sarif_file: ${{ steps.cloudeval.outputs.sarif_path }}
 ```
 
 Defaults:
@@ -98,6 +139,8 @@ Set `ignore_dirty: "true"` only if the workflow intentionally generates local fi
 When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). Reruns make a best-effort attempt to clear stale pass/fail reactions before adding the latest state; GitHub may keep historical reactions if the token cannot delete them.
 
 The review itself is written as one idempotent PR comment after the run has result data. For projects linked through the CloudEval GitHub App, the action first asks CloudEval to post or update the comment through the app installation. That makes the visible comment author the CloudEval GitHub App and uses the app logo. If the app route is unavailable, the key is missing the comment capability, or the project is not GitHub-linked, the action falls back to the existing `github-actions[bot]` comment path.
+
+When `github_checks: true`, the action also asks CloudEval to post a native GitHub Check Run using the same GitHub App installation. Findings with source paths become inline annotations on the changed files by default. This keeps the workflow runner free of GitHub App private keys; it only sends the CloudEval access key to the CloudEval API. The app installation must include **Checks: read and write**, and the access key must include `github:checks`.
 
 Example gates:
 
@@ -138,6 +181,26 @@ ci:
 
     # Optional monthly budget gate. Omit if cost should be reported but not gated.
     max_monthly_cost_usd: 500
+
+  review:
+    diff:
+      # Compare the PR/branch against this base ref for changed-file evidence.
+      base_ref: origin/main
+      # Keep patch snippets bounded in review.json.
+      max_patch_bytes: 40000
+    github:
+      checks:
+        # Post a CloudEval GitHub App Check Run with source annotations.
+        enabled: true
+        name: CloudEval
+        # Keep annotations focused on files changed in the PR.
+        changed_files_only: true
+        annotation_limit: 50
+        include_notices: false
+      sarif:
+        # Write review.sarif.json. Upload it with github/codeql-action/upload-sarif.
+        enabled: true
+        category: cloudeval-iac
 ```
 
 If `ci.gates` is missing, review mode reports a warning rather than failing by default. If gates are present, `enforcement: block_pull_request` fails the job on gate failures. Use `enforcement: comment_only` when you want full review output without blocking merges yet. Existing `required`, `warn`, `overall_score_min`, `pillar_score_min`, `fail_on_high_risk`, `fail_on_validation_errors`, and `max_monthly_cost` keys are still accepted for compatibility.
@@ -202,6 +265,21 @@ Supported PDF output keys:
 
 The visible AI summary is followed by a folded detailed AI reviewer note and an open action queue. Well-Architected drilldowns include a Mermaid `radar-beta` chart when enough pillar scores are available, plus a table fallback for GitHub renderers that do not support radar charts yet. Cost drilldowns include a resource-cost pie chart, a projected-versus-optimized savings chart, and a compact service-cost table. If resource-level cost rows do not add up to the displayed total, the chart includes an `Unallocated` slice so the visual reconciles to the monthly estimate.
 
+## GitHub Checks and SARIF
+
+Use these when reviewers should see CloudEval findings in GitHub's native review surfaces, not only in one PR comment.
+
+| Feature | Action input | Required GitHub permission | Required CloudEval key capability |
+| --- | --- | --- | --- |
+| CloudEval App Check Run | `github_checks: "true"` | CloudEval GitHub App: **Checks: read and write** | `github:checks` |
+| Inline annotations | `github_checks: "true"` | Same as Check Run | `github:checks` |
+| SARIF file generation | `sarif: "true"` | None by itself | reports/project read capabilities |
+| GitHub code scanning upload | `github/codeql-action/upload-sarif` | Workflow token: `security-events: write` | None beyond SARIF generation |
+
+Check annotations are created from source-mapped CloudEval findings. By default CloudEval annotates changed files only. Set `checks_all_files: "true"` for repository-wide annotations or `checks_include_notices: "true"` when informational findings should appear.
+
+SARIF is written to `review.sarif.json` under `review_output_dir` unless `sarif_output` is set. The composite action exposes the path as `steps.<id>.outputs.sarif_path`; upload it with GitHub's SARIF upload action as shown in the review workflow above.
+
 To actually block merges, add a GitHub branch protection rule or ruleset that requires the workflow job running this action (for example `CloudEval review / review`). GitHub Actions cannot prevent someone from clicking **Approve** on a PR; the enforcement point is the required status check before merge.
 
 ## Gating (`gate_*`)
@@ -235,6 +313,8 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
 - **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one result comment (marker `<!-- cloudeval-action -->`). GitHub App-linked projects post the comment through the CloudEval App identity when the access key has `github:comment`; otherwise the action falls back to **github-actions[bot]**. The fallback and reactions require `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
 - **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix. Review comments are expanded by default so the one-line result is visible, while detailed review sections can still fold themselves.
+- **`github_checks`**, **`github_check_name`**, **`checks_annotation_limit`**, **`checks_all_files`**, **`checks_include_notices`**: enable CloudEval App-authored Check Runs and tune annotation volume.
+- **`sarif`**, **`sarif_output`**: write source-mapped SARIF for upload to GitHub code scanning or another SARIF consumer.
 
 ## Artifacts
 
@@ -253,6 +333,8 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 | `report_path` | Reports download directory when applicable |
 | `artifact_path` | Staged artifact directory before upload |
 | `run_url` | Link to the workflow run |
+| `sarif_path` | Generated SARIF path when SARIF is enabled |
+| `check_run_url` | CloudEval GitHub App Check Run URL when posted |
 
 ## Reusable workflow
 

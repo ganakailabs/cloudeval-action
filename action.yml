@@ -144,6 +144,34 @@ inputs:
     description: Output directory for review.json and review.md.
     required: false
     default: cloudeval-review
+  github_checks:
+    description: Generate GitHub Checks annotations from review findings and post a CloudEval App check run when the project is GitHub-linked.
+    required: false
+    default: "false"
+  github_check_name:
+    description: GitHub Check Run name used when github_checks is true.
+    required: false
+    default: CloudEval
+  checks_annotation_limit:
+    description: Maximum number of GitHub Checks annotations to post.
+    required: false
+    default: "50"
+  checks_all_files:
+    description: Annotate findings in all files instead of changed files only.
+    required: false
+    default: "false"
+  checks_include_notices:
+    description: Include notice-level findings in GitHub Checks annotations.
+    required: false
+    default: "false"
+  sarif:
+    description: Generate review.sarif.json from source-mapped review findings.
+    required: false
+    default: "false"
+  sarif_output:
+    description: Optional SARIF output path; defaults to review_output_dir/review.sarif.json when sarif is true.
+    required: false
+    default: ""
   working_directory:
     description: Working directory for CLI.
     required: false
@@ -221,6 +249,12 @@ outputs:
   run_url:
     description: URL to this workflow run (when include_run_metadata supplies server env)
     value: ${{ steps.run.outputs.run_url }}
+  sarif_path:
+    description: Path to generated review.sarif.json when SARIF is enabled.
+    value: ${{ steps.run.outputs.sarif_path }}
+  check_run_url:
+    description: URL to the CloudEval GitHub App Check Run when posted.
+    value: ${{ steps.check-run.outputs.check_run_url }}
 
 runs:
   using: composite
@@ -293,6 +327,13 @@ runs:
         INPUT_AI_SUMMARY_MODE: ${{ inputs.ai_summary_mode }}
         INPUT_AI_SUMMARY_PROFILE: ${{ inputs.ai_summary_profile }}
         INPUT_REVIEW_OUTPUT_DIR: ${{ inputs.review_output_dir }}
+        INPUT_GITHUB_CHECKS: ${{ inputs.github_checks }}
+        INPUT_GITHUB_CHECK_NAME: ${{ inputs.github_check_name }}
+        INPUT_CHECKS_ANNOTATION_LIMIT: ${{ inputs.checks_annotation_limit }}
+        INPUT_CHECKS_ALL_FILES: ${{ inputs.checks_all_files }}
+        INPUT_CHECKS_INCLUDE_NOTICES: ${{ inputs.checks_include_notices }}
+        INPUT_SARIF: ${{ inputs.sarif }}
+        INPUT_SARIF_OUTPUT: ${{ inputs.sarif_output }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
         INPUT_INCLUDE_RUN_METADATA: ${{ inputs.include_run_metadata }}
         INPUT_JOB_SUMMARY_TITLE: ${{ inputs.job_summary_title }}
@@ -304,6 +345,25 @@ runs:
         GITHUB_REF_NAME: ${{ github.ref_name }}
         GITHUB_WORKFLOW: ${{ github.workflow }}
       run: bash "${{ github.action_path }}/scripts/run.sh"
+
+    - name: GitHub Check Run
+      id: check-run
+      if: always() && inputs.github_checks == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        CLOUDEVAL_ACCESS_KEY: ${{ inputs.access_key }}
+        INPUT_BASE_URL: ${{ inputs.base_url }}
+        INPUT_PROJECT_ID: ${{ inputs.project_id }}
+        INPUT_GITHUB_CHECK_NAME: ${{ inputs.github_check_name }}
+        SUMMARY_FILE: ${{ steps.run.outputs.summary_file }}
+        JSON_PATH: ${{ steps.run.outputs.json_path }}
+        RESULT: ${{ steps.run.outputs.result }}
+        REPO: ${{ github.repository }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_SHA: ${{ github.sha }}
+      run: bash "${{ github.action_path }}/scripts/check-run.sh"
 
     - name: Upload artifact
       if: always() && inputs.upload_artifacts == 'true'

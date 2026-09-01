@@ -7,6 +7,7 @@ This action authenticates with a **scoped access key** (`cev_<env>_ak_<id>_<secr
 - **Product UI:** Developer workspace → **API & CLI access keys** (`/app/developer`, keys tab).
 - **RBAC:** Creating and revoking keys requires `credentials:manage` (see frontend auth guide).
 - **One-time secret:** The raw key is shown once; store it only in GitHub **Secrets** (e.g. `CLOUDEVAL_ACCESS_KEY`).
+- **Expiry:** Keys are time-limited and are not renewed in place. Create a new key and replace the GitHub secret when a workflow reports `credential_expired`.
 
 ## Runtime verification (backend)
 
@@ -18,6 +19,7 @@ The CLI sends `Authorization: Bearer <access_key>`. The API validates via `verif
 - Use **least-capability** key templates (e.g. CI read-only) when available.
 - If your key has an **IP allowlist**, GitHub-hosted runner egress IPs change; use allowlist “any” for GitHub Actions or self-hosted runners with stable egress.
 - Rotate keys from the Developer workspace if a secret is exposed.
+- Rotate expired keys by creating a new **GitHub Actions CI** key, replacing `CLOUDEVAL_ACCESS_KEY`, rerunning the workflow, and revoking the old key if it is still listed.
 
 ## Env vars (CLI)
 
