@@ -47,7 +47,7 @@ cat >"$tmpdir/review.json" <<'JSON'
     "github": {
       "checks": {
         "enabled": true,
-        "name": "CloudEval review",
+        "name": "Cloudeval review",
         "annotations": [
           {
             "path": "infra/main.json",
@@ -65,7 +65,7 @@ cat >"$tmpdir/review.json" <<'JSON'
 JSON
 
 cat >"$tmpdir/summary.md" <<'MD'
-## CloudEval infrastructure review
+## Cloudeval infrastructure review
 
 | Signal | Result |
 | --- | --- |
@@ -77,7 +77,7 @@ export CAPTURE_PAYLOAD="$tmpdir/payload.json"
 export CLOUDEVAL_ACCESS_KEY="cev_test_ak_mock"
 export INPUT_PROJECT_ID="project-1"
 export INPUT_BASE_URL="https://cloudeval.test/api/v1"
-export INPUT_GITHUB_CHECK_NAME="CloudEval"
+export INPUT_GITHUB_CHECK_NAME="Cloudeval"
 export SUMMARY_FILE="$tmpdir/summary.md"
 export JSON_PATH="$tmpdir/review.json"
 export RESULT="pass"
@@ -92,12 +92,12 @@ bash "$(dirname "$0")/check-run.sh"
 
 jq -e '
   .repo_full_name == "org/repo"
-  and .name == "CloudEval review"
+  and .name == "Cloudeval review"
   and .head_sha == "abc123def456"
   and .conclusion == "neutral"
   and .details_url == "https://github.test/org/repo/actions/runs/123"
-  and .output.title == "CloudEval infrastructure review"
-  and (.output.summary | contains("CloudEval infrastructure review"))
+  and .output.title == "Cloudeval infrastructure review"
+  and (.output.summary | contains("Cloudeval infrastructure review"))
   and .annotations[0].path == "infra/main.json"
   and .annotations[0].annotation_level == "failure"
 ' "$CAPTURE_PAYLOAD" >/dev/null

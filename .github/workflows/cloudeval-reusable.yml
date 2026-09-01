@@ -1,4 +1,4 @@
-name: CloudEval (reusable)
+name: Cloudeval (reusable)
 
 # Call from another repository:
 #   jobs:
@@ -11,7 +11,7 @@ on:
   workflow_call:
     secrets:
       CLOUDEVAL_ACCESS_KEY:
-        description: Scoped CloudEval access key (cev_…)
+        description: Scoped Cloudeval access key (cev_…)
         required: true
     inputs:
       mode:
@@ -185,7 +185,7 @@ on:
       job_summary_title:
         type: string
         required: false
-        default: CloudEval
+        default: Cloudeval
 
 permissions:
   contents: read
@@ -197,7 +197,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: CloudEval
+      - name: Cloudeval
         uses: ganakailabs/cloudeval-action@v1
         with:
           access_key: ${{ secrets.CLOUDEVAL_ACCESS_KEY }}

@@ -44,7 +44,7 @@ case "${gate_status:-${RESULT:-}}" in
     ;;
 esac
 
-summary_preview="CloudEval review completed."
+summary_preview="Cloudeval review completed."
 markdown_file="/dev/null"
 if [[ -n "${SUMMARY_FILE:-}" && -f "$SUMMARY_FILE" ]]; then
   markdown_file="$SUMMARY_FILE"
@@ -72,7 +72,7 @@ trap 'rm -f "$payload_file" "$response_file"' EXIT
 jq -n \
   --slurpfile review "$JSON_PATH" \
   --arg repo "$repo" \
-  --arg name "${INPUT_GITHUB_CHECK_NAME:-CloudEval}" \
+  --arg name "${INPUT_GITHUB_CHECK_NAME:-Cloudeval}" \
   --arg sha "${GITHUB_SHA:-}" \
   --arg conclusion "$conclusion" \
   --arg run_url "$run_url" \
@@ -89,7 +89,7 @@ jq -n \
     conclusion: $conclusion,
     external_id: ("cloudeval-" + $project_id + "-" + (($d.commitSha // $sha) | tostring)),
     output: {
-      title: "CloudEval infrastructure review",
+      title: "Cloudeval infrastructure review",
       summary: $summary,
       text: ($markdown[0:60000])
     },
@@ -116,7 +116,7 @@ status_code="$(
 
 if [[ "$status_code" =~ ^2 ]]; then
   check_url="$(jq -r '.html_url // empty' "$response_file" 2>/dev/null || true)"
-  echo "check-run: posted CloudEval Check Run"
+  echo "check-run: posted Cloudeval Check Run"
   if [[ -n "${GITHUB_OUTPUT:-}" && -n "$check_url" ]]; then
     echo "check_run_url=$check_url" >>"$GITHUB_OUTPUT"
   fi
@@ -124,5 +124,5 @@ if [[ "$status_code" =~ ^2 ]]; then
 fi
 
 preview="$(head -c 300 "$response_file" 2>/dev/null | tr -d '\r' || true)"
-echo "check-run: CloudEval GitHub App check run unavailable (${status_code}); ${preview}" >&2
+echo "check-run: Cloudeval GitHub App check run unavailable (${status_code}); ${preview}" >&2
 exit 0
