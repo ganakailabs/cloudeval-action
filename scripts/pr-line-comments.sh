@@ -52,8 +52,10 @@ post_with_cloudeval_app() {
   local endpoint="${api_base}/projects/${INPUT_PROJECT_ID}/github/pr-line-comments"
   local payload_file
   local response_file
+  local idempotency_key
   payload_file="$(mktemp)"
   response_file="$(mktemp)"
+  idempotency_key="cloudeval-pr-line-comments-${GITHUB_RUN_ID:-run}-${PR_NUMBER}"
 
   jq -n \
     --arg repo_full_name "$REPO" \
@@ -74,6 +76,7 @@ post_with_cloudeval_app() {
     --url "$endpoint" \
     --header "Authorization: Bearer ${CLOUDEVAL_ACCESS_KEY}" \
     --header "Content-Type: application/json" \
+    --header "Idempotency-Key: ${idempotency_key}" \
     --data @"$payload_file" >"$response_file"; then
     rm -f "$payload_file" "$response_file"
     return 2

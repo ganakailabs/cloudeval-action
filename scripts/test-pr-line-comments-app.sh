@@ -20,10 +20,19 @@ set -euo pipefail
 
 input_file=""
 url=""
+idempotency_key=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --data|--data-binary|--data-raw)
       input_file="$2"
+      shift 2
+      ;;
+    --header|-H)
+      case "$2" in
+        Idempotency-Key:*)
+          idempotency_key="${2#Idempotency-Key: }"
+          ;;
+      esac
       shift 2
       ;;
     http*)
@@ -42,6 +51,7 @@ fi
 test -n "$input_file"
 cp "$input_file" "$CAPTURE_DIR/app-payload.json"
 printf '%s' "$url" >"$CAPTURE_DIR/app-url.txt"
+printf '%s' "$idempotency_key" >"$CAPTURE_DIR/app-idempotency-key.txt"
 posted_count="$(jq '.comments | length' "$input_file")"
 printf '{"status":"posted","posted_count":%s,"deleted_count":1,"comments":[]}\n' "$posted_count"
 EOF
@@ -96,11 +106,13 @@ export INPUT_PROJECT_ID="project-123"
 export PR_NUMBER="8"
 export REPO="ganakailabs/example"
 export GITHUB_HEAD_SHA="abcdef123456"
+export GITHUB_RUN_ID="test-run"
 export INPUT_PR_LINE_COMMENT_LIMIT="5"
 
 bash "$ROOT_DIR/scripts/pr-line-comments.sh" >"$TMP_DIR/output.txt"
 
 grep -F "https://cloudeval.ai/api/proxy/v1/projects/project-123/github/pr-line-comments" "$TMP_DIR/app-url.txt" >/dev/null
+grep -F "cloudeval-pr-line-comments-test-run-8" "$TMP_DIR/app-idempotency-key.txt" >/dev/null
 jq -e '
   .repo_full_name == "ganakailabs/example"
   and .pull_request_number == 8
