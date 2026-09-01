@@ -109,7 +109,7 @@ jobs:
           github_checks: true
           sarif: true
           upload_artifacts: true
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always() && steps.cloudeval.outputs.sarif_path != ''
         with:
           sarif_file: ${{ steps.cloudeval.outputs.sarif_path }}
