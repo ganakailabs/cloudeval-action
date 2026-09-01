@@ -164,6 +164,18 @@ inputs:
     description: Include notice-level findings in GitHub Checks annotations.
     required: false
     default: "false"
+  emit_annotations:
+    description: Emit GitHub Actions line annotations from review findings. This works without Cloudeval GitHub App Checks permission.
+    required: false
+    default: "true"
+  pr_line_comments:
+    description: Post bounded PR review comments on changed lines from review annotations.
+    required: false
+    default: "false"
+  pr_line_comment_limit:
+    description: Maximum number of PR line comments to post when pr_line_comments is true.
+    required: false
+    default: "5"
   sarif:
     description: Generate review.sarif.json from source-mapped review findings.
     required: false
@@ -332,6 +344,7 @@ runs:
         INPUT_CHECKS_ANNOTATION_LIMIT: ${{ inputs.checks_annotation_limit }}
         INPUT_CHECKS_ALL_FILES: ${{ inputs.checks_all_files }}
         INPUT_CHECKS_INCLUDE_NOTICES: ${{ inputs.checks_include_notices }}
+        INPUT_EMIT_ANNOTATIONS: ${{ inputs.emit_annotations }}
         INPUT_SARIF: ${{ inputs.sarif }}
         INPUT_SARIF_OUTPUT: ${{ inputs.sarif_output }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working_directory }}
@@ -343,8 +356,30 @@ runs:
         GITHUB_SHA: ${{ github.sha }}
         GITHUB_REF: ${{ github.ref }}
         GITHUB_REF_NAME: ${{ github.ref_name }}
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
         GITHUB_WORKFLOW: ${{ github.workflow }}
       run: bash "${{ github.action_path }}/scripts/run.sh"
+
+    - name: Emit GitHub annotations
+      if: always() && inputs.emit_annotations == 'true' && inputs.mode == 'review'
+      shell: bash
+      env:
+        JSON_PATH: ${{ steps.run.outputs.json_path }}
+      run: bash "${{ github.action_path }}/scripts/emit-annotations.sh"
+
+    - name: PR line comments
+      if: always() && inputs.pr_line_comments == 'true' && inputs.mode == 'review' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        JSON_PATH: ${{ steps.run.outputs.json_path }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+        GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        INPUT_PR_LINE_COMMENT_LIMIT: ${{ inputs.pr_line_comment_limit }}
+      run: bash "${{ github.action_path }}/scripts/pr-line-comments.sh"
 
     - name: GitHub Check Run
       id: check-run

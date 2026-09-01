@@ -89,6 +89,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  checks: write # only needed for the optional Cloudeval App Check Run
   security-events: write # only needed for the optional SARIF upload step
 
 on:
@@ -99,6 +100,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: cloudeval
         uses: ganakailabs/cloudeval-action@v1
         with:
@@ -107,6 +110,9 @@ jobs:
           mode: review
           post_pr_comment: true
           github_checks: true
+          emit_annotations: true
+          # Optional: posts bounded comments directly on changed PR lines.
+          pr_line_comments: false
           sarif: true
           upload_artifacts: true
       - uses: github/codeql-action/upload-sarif@v4
@@ -139,6 +145,8 @@ Set `ignore_dirty: "true"` only if the workflow intentionally generates local fi
 When `post_pr_comment: true`, the action reacts to the PR with `eyes` when review starts and adds a completion reaction when it finishes (`+1` for pass, `confused` for failure). Reruns make a best-effort attempt to clear stale pass/fail reactions before adding the latest state; GitHub may keep historical reactions if the token cannot delete them.
 
 The review itself is written as one idempotent PR comment after the run has result data. For projects linked through the Cloudeval GitHub App, the action first asks Cloudeval to post or update the comment through the app installation. That makes the visible comment author the Cloudeval GitHub App and uses the app logo. If the app route is unavailable, the key is missing the comment capability, or the project is not GitHub-linked, the action falls back to the existing `github-actions[bot]` comment path.
+
+With `emit_annotations: true`, the action emits GitHub Actions line annotations from the review data. These annotations appear in the workflow Checks UI and, when GitHub can map the location to the PR diff, beside changed lines. This path uses the normal workflow run and does not require Cloudeval GitHub App Checks permission.
 
 When `github_checks: true`, the action also asks Cloudeval to post a native GitHub Check Run using the same GitHub App installation. Findings with source paths become inline annotations on the changed files by default. This keeps the workflow runner free of GitHub App private keys; it only sends the Cloudeval access key to the Cloudeval API. The app installation must include **Checks: read and write**, and the access key must include `github:checks`.
 
@@ -272,11 +280,15 @@ Use these when reviewers should see Cloudeval findings in GitHub's native review
 | Feature | Action input | Required GitHub permission | Required Cloudeval key capability |
 | --- | --- | --- | --- |
 | Cloudeval App Check Run | `github_checks: "true"` | Cloudeval GitHub App: **Checks: read and write** | `github:checks` |
-| Inline annotations | `github_checks: "true"` | Same as Check Run | `github:checks` |
+| Workflow line annotations | `emit_annotations: "true"` | Workflow token only | project/report read capabilities |
+| PR review line comments | `pr_line_comments: "true"` | Workflow token: `pull-requests: write` | project/report read capabilities |
+| Cloudeval App Check Run annotations | `github_checks: "true"` | Cloudeval GitHub App: **Checks: read and write** | `github:checks` |
 | SARIF file generation | `sarif: "true"` | None by itself | reports/project read capabilities |
 | GitHub code scanning upload | `github/codeql-action/upload-sarif` | Workflow token: `security-events: write` | None beyond SARIF generation |
 
-Check annotations are created from source-mapped Cloudeval findings. By default Cloudeval annotates changed files only. Set `checks_all_files: "true"` for repository-wide annotations or `checks_include_notices: "true"` when informational findings should appear.
+Annotations and PR line comments are created from source-mapped Cloudeval findings. If the backend report only provides aggregate gate failures, the action adds a conservative gate-summary annotation to changed IaC files instead of inventing exact rule locations. By default Cloudeval annotates changed files only. Set `checks_all_files: "true"` for repository-wide annotations or `checks_include_notices: "true"` when informational findings should appear.
+
+Use `pr_line_comments: "true"` only when you want visible review comments in the **Files changed** tab. The action deletes stale comments with marker `<!-- cloudeval-line-comment -->` from previous `github-actions[bot]` runs, then posts up to `pr_line_comment_limit` fresh comments. This mode is intentionally separate from `emit_annotations` because review comments are more visible and can become noisy on large PRs.
 
 SARIF is written to `review.sarif.json` under `review_output_dir` unless `sarif_output` is set. The composite action exposes the path as `steps.<id>.outputs.sarif_path`; upload it with GitHub's SARIF upload action as shown in the review workflow above.
 
@@ -313,6 +325,7 @@ Design prompts so the model returns stable JSON (for example `{"score":0.85,"rea
 - **`job_summary_title`**: heading on the Actions **Summary** tab.
 - **`post_pr_comment`**: when `true` and event is `pull_request`, adds PR reactions and updates one result comment (marker `<!-- cloudeval-action -->`). GitHub App-linked projects post the comment through the Cloudeval App identity when the access key has `github:comment`; otherwise the action falls back to **github-actions[bot]**. The fallback and reactions require `permissions: pull-requests: write` and `issues: write`; the PR reaction endpoint uses GitHub's issue reactions API. **Fork PRs** often cannot post comments or reactions due to token restrictions.
 - **`pr_comment_collapsed_details`**, **`pr_comment_json_excerpt`**, **`pr_comment_max_json_chars`**: control PR comment layout and optional JSON appendix. Review comments are expanded by default so the one-line result is visible, while detailed review sections can still fold themselves.
+- **`pr_line_comments`**, **`pr_line_comment_limit`**: optionally post bounded review comments directly on changed PR lines using the same annotation payload as workflow annotations.
 - **`github_checks`**, **`github_check_name`**, **`checks_annotation_limit`**, **`checks_all_files`**, **`checks_include_notices`**: enable Cloudeval App-authored Check Runs and tune annotation volume.
 - **`sarif`**, **`sarif_output`**: write source-mapped SARIF for upload to GitHub code scanning or another SARIF consumer.
 
