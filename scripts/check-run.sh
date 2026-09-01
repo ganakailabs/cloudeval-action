@@ -49,13 +49,20 @@ markdown_file="/dev/null"
 if [[ -n "${SUMMARY_FILE:-}" && -f "$SUMMARY_FILE" ]]; then
   markdown_file="$SUMMARY_FILE"
   summary_preview="$(
-    grep -v '^<!--' "$SUMMARY_FILE" \
-      | sed '/^[[:space:]]*$/d' \
-      | head -n 8 \
-      | tr '\n' ' ' \
-      | sed 's/[[:space:]][[:space:]]*/ /g' \
-      | cut -c 1-900
+    awk '
+      /^<!--/ { next }
+      /^[[:space:]]*$/ { next }
+      {
+        gsub(/[[:space:]][[:space:]]+/, " ")
+        printf "%s ", $0
+        count += 1
+        if (count >= 8) {
+          exit
+        }
+      }
+    ' "$SUMMARY_FILE"
   )"
+  summary_preview="${summary_preview:0:900}"
 fi
 
 payload_file="$(mktemp)"
