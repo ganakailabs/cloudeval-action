@@ -47,9 +47,9 @@ post_with_cloudeval_app() {
     return 2
   fi
 
-  local api_base="${INPUT_BASE_URL:-https://cloudeval.ai}"
+  local api_base="${INPUT_BASE_URL:-${CLOUDEVAL_BASE_URL:-https://cloudeval.ai/api/proxy/v1}}"
   api_base="${api_base%/}"
-  local endpoint="${api_base}/api/v1/projects/${INPUT_PROJECT_ID}/github/pr-line-comments"
+  local endpoint="${api_base}/projects/${INPUT_PROJECT_ID}/github/pr-line-comments"
   local payload_file
   local response_file
   payload_file="$(mktemp)"
