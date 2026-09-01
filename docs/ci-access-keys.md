@@ -1,4 +1,4 @@
-# CloudEval access keys in CI
+# Cloudeval access keys in CI
 
 This action authenticates with a **scoped access key** (`cev_<env>_ak_<id>_<secret>`), not a legacy shared API key.
 

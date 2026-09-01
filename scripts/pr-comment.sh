@@ -22,7 +22,7 @@ meta_block=""
 inner="${summary_text}${meta_block}"
 
 if [[ "${PR_COMMENT_COLLAPSED:-true}" == "true" ]]; then
-  body_main=$'<details open><summary><strong>CloudEval summary</strong></summary>\n\n'"${inner}"$'\n\n</details>'
+  body_main=$'<details open><summary><strong>Cloudeval summary</strong></summary>\n\n'"${inner}"$'\n\n</details>'
 else
   body_main="$inner"
 fi
@@ -84,14 +84,14 @@ try_cloudeval_app_comment() {
   )"
   rm -f "$payload_file"
   if [[ "$status_code" =~ ^2 ]]; then
-    echo "pr-comment: posted via CloudEval GitHub App"
+    echo "pr-comment: posted via Cloudeval GitHub App"
     rm -f "$response_file"
     return 0
   fi
   local preview
   preview="$(head -c 300 "$response_file" 2>/dev/null | tr -d '\r' || true)"
   rm -f "$response_file"
-  echo "pr-comment: CloudEval GitHub App posting unavailable (${status_code}); falling back to github-actions[bot]. ${preview}" >&2
+  echo "pr-comment: Cloudeval GitHub App posting unavailable (${status_code}); falling back to github-actions[bot]. ${preview}" >&2
   return 1
 }
 

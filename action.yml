@@ -1,6 +1,6 @@
 name: Cloudeval Actions
-description: Run CloudEval CLI in GitHub Actions with scoped access keys, gating, reports, PR feedback, and artifacts.
-author: CloudEval
+description: Run Cloudeval CLI in GitHub Actions with scoped access keys, gating, reports, PR feedback, and artifacts.
+author: Cloudeval
 
 # Marketplace badge: GitHub only allows Feather icon names here (not PNG/SVG).
 # Product artwork lives in media/ — abstract cloud from cloudeval-frontend (see media/README.md).
@@ -10,7 +10,7 @@ branding:
 
 inputs:
   access_key:
-    description: CloudEval access key (repository secret; use secrets.CLOUDEVAL_ACCESS_KEY).
+    description: Cloudeval access key (repository secret; use secrets.CLOUDEVAL_ACCESS_KEY).
     required: true
   base_url:
     description: Optional API base URL (CLOUDEVAL_BASE_URL / cloudeval --base-url).
@@ -105,7 +105,7 @@ inputs:
     required: false
     default: ""
   source_root:
-    description: Optional IaC source root for GitHub-backed CloudEval projects.
+    description: Optional IaC source root for GitHub-backed Cloudeval projects.
     required: false
     default: ""
   config_path:
@@ -145,13 +145,13 @@ inputs:
     required: false
     default: cloudeval-review
   github_checks:
-    description: Generate GitHub Checks annotations from review findings and post a CloudEval App check run when the project is GitHub-linked.
+    description: Generate GitHub Checks annotations from review findings and post a Cloudeval App check run when the project is GitHub-linked.
     required: false
     default: "false"
   github_check_name:
     description: GitHub Check Run name used when github_checks is true.
     required: false
-    default: CloudEval
+    default: Cloudeval
   checks_annotation_limit:
     description: Maximum number of GitHub Checks annotations to post.
     required: false
@@ -177,7 +177,7 @@ inputs:
     required: false
     default: .
   cli_install_url:
-    description: CloudEval CLI install script URL.
+    description: Cloudeval CLI install script URL.
     required: false
     default: https://cli.cloudeval.ai/install.sh
   skip_cli_install:
@@ -219,7 +219,7 @@ inputs:
   job_summary_title:
     description: Heading for the GitHub Actions job summary.
     required: false
-    default: CloudEval
+    default: Cloudeval
 
 outputs:
   result:
@@ -253,13 +253,13 @@ outputs:
     description: Path to generated review.sarif.json when SARIF is enabled.
     value: ${{ steps.run.outputs.sarif_path }}
   check_run_url:
-    description: URL to the CloudEval GitHub App Check Run when posted.
+    description: URL to the Cloudeval GitHub App Check Run when posted.
     value: ${{ steps.check-run.outputs.check_run_url }}
 
 runs:
   using: composite
   steps:
-    - name: Install CloudEval CLI
+    - name: Install Cloudeval CLI
       if: inputs.skip_cli_install != 'true'
       shell: bash
       run: |
@@ -272,7 +272,7 @@ runs:
           bash "$installer"
         }
         if ! install_from_script; then
-          echo "::warning::CloudEval CLI installer was unavailable; falling back to npm."
+          echo "::warning::Cloudeval CLI installer was unavailable; falling back to npm."
           npm install -g @ganakailabs/cloudeval-cli@latest
         fi
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -289,7 +289,7 @@ runs:
         REPO: ${{ github.repository }}
       run: bash "${{ github.action_path }}/scripts/pr-reaction.sh"
 
-    - name: Run CloudEval
+    - name: Run Cloudeval
       id: run
       shell: bash
       env:

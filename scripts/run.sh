@@ -132,7 +132,7 @@ write_outputs() {
 
   if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     {
-      echo "## ${INPUT_JOB_SUMMARY_TITLE:-CloudEval}"
+      echo "## ${INPUT_JOB_SUMMARY_TITLE:-Cloudeval}"
       echo ""
       echo "$summary_md"
     } >>"$GITHUB_STEP_SUMMARY"
@@ -149,7 +149,7 @@ stage_artifacts() {
 summarize_fail() {
   local msg="$1"
   {
-    echo "### CloudEval failed"
+    echo "### Cloudeval failed"
     echo ""
     echo "$msg"
     append_run_metadata
@@ -207,15 +207,15 @@ summarize_review_cli_failure() {
 
   if [[ "$code" == "credential_expired" ]] || printf '%s\n' "$preview" | grep -qi 'credential_expired\|access-key credential has expired'; then
     {
-      echo "### CloudEval failed"
+      echo "### Cloudeval failed"
       echo ""
-      echo "CloudEval review could not run because the **CloudEval access key is expired**."
+      echo "Cloudeval review could not run because the **Cloudeval access key is expired**."
       echo ""
       echo "#### Next steps: Renew the repository secret"
       echo ""
-      echo "1. In CloudEval, open **Developer -> API & CLI access keys**."
+      echo "1. In Cloudeval, open **Developer -> API & CLI access keys**."
       echo "2. Create a new **GitHub Actions CI** key scoped to this project."
-      echo "3. Include the review/report capabilities your workflow uses. Add **github:comment** for CloudEval App PR comments and **github:checks** for native Check Runs."
+      echo "3. Include the review/report capabilities your workflow uses. Add **github:comment** for Cloudeval App PR comments and **github:checks** for native Check Runs."
       echo "4. Update the repository secret **CLOUDEVAL_ACCESS_KEY** in GitHub."
       echo "5. Re-run this workflow."
       echo ""
@@ -235,14 +235,14 @@ summarize_review_cli_failure() {
   if [[ "$code" == "credential_revoked" || "$code" == "invalid_credential" || "$code" == "unauthorized" ]] ||
     printf '%s\n' "$preview" | grep -qi 'invalid.*access key\|credential_revoked\|unauthorized'; then
     {
-      echo "### CloudEval failed"
+      echo "### Cloudeval failed"
       echo ""
-      echo "CloudEval review could not authenticate with the configured **CLOUDEVAL_ACCESS_KEY**."
+      echo "Cloudeval review could not authenticate with the configured **CLOUDEVAL_ACCESS_KEY**."
       echo ""
       echo "#### Next steps"
       echo ""
       echo "1. Confirm the GitHub secret **CLOUDEVAL_ACCESS_KEY** is set on this repository or environment."
-      echo "2. Create a new **GitHub Actions CI** key in CloudEval if the current key was revoked or rotated."
+      echo "2. Create a new **GitHub Actions CI** key in Cloudeval if the current key was revoked or rotated."
       echo "3. Confirm the key is scoped to the target project and includes the capabilities used by this workflow."
       echo "4. Re-run this workflow."
       echo ""
@@ -260,9 +260,9 @@ summarize_review_cli_failure() {
   fi
 
   {
-    echo "### CloudEval failed"
+    echo "### Cloudeval failed"
     echo ""
-    echo "CloudEval review did not produce a usable review summary."
+    echo "Cloudeval review did not produce a usable review summary."
     echo ""
     echo "#### Next steps"
     echo ""
@@ -460,7 +460,7 @@ run_review_flow() {
     local summary
     summary="$(json_string '.data.summaryMarkdown' || true)"
     {
-      echo "### CloudEval review"
+      echo "### Cloudeval review"
       echo ""
       if [[ -n "$summary" ]]; then
         echo "$summary"
@@ -533,7 +533,7 @@ apply_gate_if_needed() {
   local op="${INPUT_GATE_OPERATOR:-ge}"
   if gate_compare "$op" "$score" "$threshold"; then
     {
-      echo "### CloudEval gate"
+      echo "### Cloudeval gate"
       echo ""
       echo "- **Extracted value:** ${score}"
       echo "- **Operator:** \`${op}\` vs **threshold:** ${threshold}"
@@ -547,7 +547,7 @@ apply_gate_if_needed() {
   fi
 
   {
-    echo "### CloudEval gate failed"
+    echo "### Cloudeval gate failed"
     echo ""
     echo "- **Extracted value:** ${score}"
     echo "- **Operator:** \`${op}\` vs **threshold:** ${threshold}"
@@ -576,7 +576,7 @@ ask)
     apply_gate_if_needed "${INPUT_GATE_THRESHOLD}"
   fi
   {
-    echo "### CloudEval ask"
+    echo "### Cloudeval ask"
     echo ""
     echo "Completed successfully."
     append_answer_snippet
@@ -614,7 +614,7 @@ agent)
     apply_gate_if_needed "${INPUT_GATE_THRESHOLD}"
   fi
   {
-    echo "### CloudEval agent"
+    echo "### Cloudeval agent"
     echo ""
     echo "Completed successfully."
     append_answer_snippet
@@ -628,7 +628,7 @@ reports)
   if [[ -z "${INPUT_PROJECT_ID:-}" ]]; then
     summarize_fail "mode reports requires project_id"
   fi
-  run_reports_flow "CloudEval reports"
+  run_reports_flow "Cloudeval reports"
   ;;
 
 review)
@@ -637,7 +637,7 @@ review)
 
 nightly)
   if [[ -n "${INPUT_PROJECT_ID:-}" ]]; then
-    run_reports_flow "CloudEval nightly (reports)"
+    run_reports_flow "Cloudeval nightly (reports)"
   else
     if [[ "$USE_AGENT" == true ]]; then
       if [[ -z "${INPUT_AGENT_TASK:-}" ]]; then
@@ -654,7 +654,7 @@ nightly)
       apply_gate_if_needed "${INPUT_GATE_THRESHOLD}"
     fi
     {
-      echo "### CloudEval nightly (ask)"
+      echo "### Cloudeval nightly (ask)"
       echo ""
       echo "Scheduled check completed."
       append_answer_snippet

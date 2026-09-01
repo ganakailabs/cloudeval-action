@@ -26,6 +26,9 @@ jobs:
       - name: PR comment fallback guidance
         run: bash scripts/test-pr-comment-fallback.sh
 
+      - name: Brand consistency
+        run: bash scripts/test-brand-consistency.sh
+
   mock-gate:
     runs-on: ubuntu-latest
     steps:
@@ -92,7 +95,7 @@ jobs:
           done
           mkdir -p "$outdir"
           cat > "$outdir/review.md" <<'MD'
-          ## CloudEval infrastructure review
+          ## Cloudeval infrastructure review
 
           | Signal | Result |
           | --- | --- |
@@ -144,7 +147,7 @@ jobs:
           grep -- '--ai-summary-profile architecture' "$RUNNER_TEMP/cloudeval-args.txt"
           summary_file='${{ steps.review.outputs.summary_file }}'
           artifact_path='${{ steps.review.outputs.artifact_path }}'
-          grep -- '## CloudEval infrastructure review' "$summary_file"
+          grep -- '## Cloudeval infrastructure review' "$summary_file"
           grep -- 'img.shields.io/badge/Workflow-run' "$summary_file"
           test -s "$artifact_path/review/review.pdf"
           test "$(grep -o 'actions/runs' "$summary_file" | wc -l | tr -d ' ')" = "1"
@@ -173,7 +176,7 @@ jobs:
             esac
           done
           mkdir -p "$outdir"
-          printf '%s\n' '## CloudEval infrastructure review' > "$outdir/review.md"
+          printf '%s\n' '## Cloudeval infrastructure review' > "$outdir/review.md"
           printf '%s\n' '%PDF-1.4 mock failing review pdf' > "$outdir/review.pdf"
           echo '{"data":{"gate":{"overallScore":23,"status":"fail"}}}'
           exit 1

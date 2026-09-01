@@ -1,14 +1,14 @@
-# CloudEval GitHub Action
+# Cloudeval GitHub Action
 
 <p align="center">
-  <img src="media/logo-abstract-cloud-256.png" alt="CloudEval" width="128" height="128" />
+  <img src="media/logo-abstract-cloud-256.png" alt="Cloudeval" width="128" height="128" />
 </p>
 
-Composite action that installs the [CloudEval CLI](https://github.com/ganakailabs/cloudeval-cli) and runs **review**, **ask**, **agent**, **reports**, **merge gating**, and **nightly** flows, with **job summaries**, **PR comments**, and **artifacts**.
+Composite action that installs the [Cloudeval CLI](https://github.com/ganakailabs/cloudeval-cli) and runs **review**, **ask**, **agent**, **reports**, **merge gating**, and **nightly** flows, with **job summaries**, **PR comments**, and **artifacts**.
 
 The image above is the same **abstract cloud** mark as in the web app ([`app/layout.tsx` OpenGraph](https://github.com/ganakailabs/cloudeval-frontend/blob/main/app/layout.tsx) uses `/common/logo-abstract-cloud-dark-v3.png`). The GitHub Marketplace badge still uses GitHub’s **Feather `cloud`** icon because [custom images are not supported](https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#branding) in `action.yml` `branding`.
 
-Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)). For PR review, use the **GitHub Actions CI** key template so CloudEval can run reports, generate AI summaries, and post GitHub App comments for GitHub-linked projects.
+Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)). For PR review, use the **GitHub Actions CI** key template so Cloudeval can run reports, generate AI summaries, and post GitHub App comments for GitHub-linked projects.
 
 Access keys are intentionally time-limited and are **not renewed in place**. When a key expires, create a new GitHub Actions CI key, replace the GitHub secret `CLOUDEVAL_ACCESS_KEY`, and rerun the workflow. See [Renew an expired access key](docs/github-action.md#renew-an-expired-access-key).
 
@@ -21,7 +21,7 @@ Use [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakail
 ## Quick start
 
 ```yaml
-name: CloudEval review
+name: Cloudeval review
 
 on:
   pull_request:
@@ -65,7 +65,7 @@ Pin the action and `actions/checkout` to **tags or SHAs** you trust (see [RELEAS
 | **CLI ergonomics** | `quiet`, `progress` (default `none`), optional `model`, `profile`. |
 | **Reports** | `reports_type`, `reports_region`, `reports_currency`, optional `reports_wait` + poll interval, then `reports download`. |
 | **Summaries** | GitHub **job summary** + optional `summary_answer_jq` snippet from JSON. |
-| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with a merge-gate table, CloudEval report badges, visible AI summary, folded detailed AI reviewer note, action queue, Well-Architected radar/table drilldown, resource-cost pie, and savings impact chart. For GitHub App-linked projects, comment posting and optional Check Runs are delegated to the CloudEval GitHub App so the comment/check uses the CloudEval App identity and logo; otherwise comments fall back to `github-actions[bot]`. |
+| **PR feedback** | Adds PR reactions for review lifecycle (`eyes` when started, `+1`/`confused` when finished), attempts to clear stale pass/fail reactions across reruns, and writes one idempotent result comment (`<!-- cloudeval-action -->`) with a merge-gate table, Cloudeval report badges, visible AI summary, folded detailed AI reviewer note, action queue, Well-Architected radar/table drilldown, resource-cost pie, and savings impact chart. For GitHub App-linked projects, comment posting and optional Check Runs are delegated to the Cloudeval GitHub App so the comment/check uses the Cloudeval App identity and logo; otherwise comments fall back to `github-actions[bot]`. |
 | **Checks and SARIF** | Optional GitHub Check Run annotations for source-mapped findings, plus `review.sarif.json` output for GitHub code scanning upload. |
 | **Artifacts** | Staged JSON, summary, and downloaded reports with configurable **retention-days**. |
 | **Outputs** | `result`, `score` / `extracted_value`, `summary_markdown`, `summary_file`, `json_path`, `report_path`, `artifact_path`, `run_url`, `sarif_path`, `check_run_url`. |
@@ -88,17 +88,17 @@ See [`action.yml`](action.yml) for the full list. Common ones:
 - **`upload_artifacts`**, **`artifact_name`**, **`artifact_retention_days`**
 - **`include_run_metadata`**, **`job_summary_title`**
 
-Review PR comments are expanded by default. The visible header separates the configured **Merge gate** result from observed Well-Architected posture, validation, policy checks, and cost budget status. CloudEval project, report, PDF, workflow, and artifact links render as badges. The `PDF` badge points to the CloudEval-hosted PDF; when `.cloudeval/config.yaml` enables `ci.review.outputs.pdf.enabled` and `upload_artifacts: true`, the uploaded GitHub artifact also contains `review/review.pdf`, including failed review runs. The AI summary stays visible, while the detailed AI reviewer note folds by default; action queue, Well-Architected, cost, validation, and architecture evidence sections use GitHub-native disclosures. When `github_checks: true`, the action asks the CloudEval GitHub App to post a native Check Run with inline annotations for mapped findings. When `sarif: true`, the action writes SARIF and exposes `sarif_path` for `github/codeql-action/upload-sarif`.
+Review PR comments are expanded by default. The visible header separates the configured **Merge gate** result from observed Well-Architected posture, validation, policy checks, and cost budget status. Cloudeval project, report, PDF, workflow, and artifact links render as badges. The `PDF` badge points to the Cloudeval-hosted PDF; when `.cloudeval/config.yaml` enables `ci.review.outputs.pdf.enabled` and `upload_artifacts: true`, the uploaded GitHub artifact also contains `review/review.pdf`, including failed review runs. The AI summary stays visible, while the detailed AI reviewer note folds by default; action queue, Well-Architected, cost, validation, and architecture evidence sections use GitHub-native disclosures. When `github_checks: true`, the action asks the Cloudeval GitHub App to post a native Check Run with inline annotations for mapped findings. When `sarif: true`, the action writes SARIF and exposes `sarif_path` for `github/codeql-action/upload-sarif`.
 
 PDF artifact output supports `report_type` (`all`, `architecture`, `cost`, `unit_tests`), `verbosity` (`brief`, `detailed`, `evidence`), and `fail_on_error` for teams that want PDF export failures to block the review.
 
 ## Requirements
 
 - Ubuntu runners (or compatible) with `bash`, `curl`, `npm`, `jq`, `gh` (for fallback PR comments and reactions).
-- Valid CloudEval access key with capabilities for the operations you run.
+- Valid Cloudeval access key with capabilities for the operations you run.
 - For PR comments from **forks**, GitHub may block token permissions; document that for contributors.
 - To block merges, configure GitHub branch protection/rulesets to require the workflow job that uses `mode: review`. The action fails that job only when `.cloudeval/config.yaml` gates are present and `enforcement` is `block_pull_request` (or the older compatible `required` value); low score labels such as `CRITICAL` are informational unless your gates require them to fail.
-- Native CloudEval Check Runs require the CloudEval GitHub App to be installed on the repository with **Checks: read and write** permission, and the CloudEval access key must include `github:checks`.
+- Native Cloudeval Check Runs require the Cloudeval GitHub App to be installed on the repository with **Checks: read and write** permission, and the Cloudeval access key must include `github:checks`.
 
 ## Documentation
 

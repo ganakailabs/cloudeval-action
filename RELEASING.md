@@ -1,4 +1,4 @@
-# Releasing CloudEval Action
+# Releasing Cloudeval Action
 
 ## Tags
 

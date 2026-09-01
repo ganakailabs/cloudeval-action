@@ -1,6 +1,6 @@
 # Brand assets (from cloudeval-frontend)
 
-These files mirror the CloudEval product identity from the Next.js app (`cloudeval-frontend`).
+These files mirror the Cloudeval product identity from the Next.js app (`cloudeval-frontend`).
 
 | File | Source |
 |------|--------|

@@ -66,9 +66,9 @@ export CAPTURED_COMMENT_JSON="$TMP_DIR/comment.json"
 export PR_COMMENT_COLLAPSED="false"
 
 cat >"$SUMMARY_FILE" <<'MD'
-## CloudEval infrastructure review
+## Cloudeval infrastructure review
 
-CloudEval access key is expired.
+Cloudeval access key is expired.
 
 Next steps: Renew the repository secret.
 
@@ -78,7 +78,7 @@ MD
 bash "$ROOT_DIR/scripts/pr-comment.sh" >/tmp/pr-comment-fallback.out
 
 jq -e '.body | contains("<!-- cloudeval-action -->")' "$CAPTURED_COMMENT_JSON" >/dev/null
-jq -e '.body | contains("CloudEval access key is expired")' "$CAPTURED_COMMENT_JSON" >/dev/null
+jq -e '.body | contains("Cloudeval access key is expired")' "$CAPTURED_COMMENT_JSON" >/dev/null
 jq -e '.body | contains("Renew the repository secret")' "$CAPTURED_COMMENT_JSON" >/dev/null
 jq -e '.body | contains("https://docs.cloudeval.ai/guides/review/github-actions#renew-an-expired-access-key")' "$CAPTURED_COMMENT_JSON" >/dev/null
 

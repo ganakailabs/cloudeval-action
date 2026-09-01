@@ -2,7 +2,7 @@
 
 ## Reporting
 
-Please report vulnerabilities through your organization’s standard channel or contact the CloudEval maintainers privately. Do not file public issues for undisclosed security problems.
+Please report vulnerabilities through your organization’s standard channel or contact the Cloudeval maintainers privately. Do not file public issues for undisclosed security problems.
 
 ## Using this action safely
 
