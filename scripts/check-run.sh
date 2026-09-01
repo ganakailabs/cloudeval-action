@@ -93,7 +93,10 @@ jq -n \
       summary: $summary,
       text: ($markdown[0:60000])
     },
-    annotations: ($d.github.checks.annotations // [])
+    annotations: (
+      ($d.github.checks.annotations // [])
+      | map(select((((.raw_details // "") | tostring) | contains("gate_summary")) | not))
+    )
   }
   | if $run_url != "" then . + {details_url: $run_url} else . end
   ' >"$payload_file"

@@ -60,6 +60,12 @@ while IFS= read -r annotation; do
     "$(escape_property "$title")" \
     "$(escape_data "$message")"
   annotation_count=$((annotation_count + 1))
-done < <(jq -c '(.data // .).github.checks.annotations // [] | .[]' "$JSON_PATH")
+done < <(
+  jq -c '
+    (.data // .).github.checks.annotations // []
+    | .[]
+    | select((((.raw_details // "") | tostring) | contains("gate_summary")) | not)
+  ' "$JSON_PATH"
+)
 
 echo "emit-annotations: emitted ${annotation_count} GitHub workflow annotation(s)"

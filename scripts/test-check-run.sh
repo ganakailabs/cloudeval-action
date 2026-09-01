@@ -55,7 +55,17 @@ cat >"$tmpdir/review.json" <<'JSON'
             "end_line": 12,
             "annotation_level": "failure",
             "message": "Parameter must not contain a plain-text secret.",
-            "title": "Secure parameter"
+            "title": "Secure parameter",
+            "raw_details": "unit_test · failed"
+          },
+          {
+            "path": "infra/main.json",
+            "start_line": 14,
+            "end_line": 14,
+            "annotation_level": "failure",
+            "message": "Gate evidence: overall score 48 is below 60.",
+            "title": "Cloudeval gate failed",
+            "raw_details": "gate_summary · fail"
           }
         ]
       }
@@ -98,6 +108,7 @@ jq -e '
   and .details_url == "https://github.test/org/repo/actions/runs/123"
   and .output.title == "Cloudeval infrastructure review"
   and (.output.summary | contains("Cloudeval infrastructure review"))
+  and (.annotations | length == 1)
   and .annotations[0].path == "infra/main.json"
   and .annotations[0].annotation_level == "failure"
 ' "$CAPTURE_PAYLOAD" >/dev/null
