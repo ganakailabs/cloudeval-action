@@ -16,7 +16,9 @@ Access keys are intentionally time-limited and are **not renewed in place**. Whe
 
 ## Public example
 
-Use [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) as a clean public reference. It includes nested Azure ARM templates, `.cloudeval/config.yaml`, this action wired in `.github/workflows/cloudeval-review.yml`, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2).
+Use [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) as a clean Azure ARM reference. It includes nested ARM templates, `.cloudeval/config.yaml`, this action wired in `.github/workflows/cloudeval-review.yml`, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2).
+
+For AWS CloudFormation beta, inspect [ganakailabs/cloudeval-aws-cloudformation-review-example](https://github.com/ganakailabs/cloudeval-aws-cloudformation-review-example). The [review surfaces demo PR](https://github.com/ganakailabs/cloudeval-aws-cloudformation-review-example/pull/5) exercises CloudFormation YAML and JSON findings with PR summary, Cloudeval App Check Runs, SARIF/code scanning, and workflow artifacts.
 
 ## Quick start
 
@@ -53,7 +55,7 @@ jobs:
           pr_line_comments: false
           sarif: true
           upload_artifacts: true
-      - uses: github/codeql-action/upload-sarif@v4
+      - uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d
         if: always() && steps.cloudeval.outputs.sarif_path != ''
         with:
           sarif_file: ${{ steps.cloudeval.outputs.sarif_path }}
