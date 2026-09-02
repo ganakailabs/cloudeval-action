@@ -77,6 +77,8 @@ Use review mode for pull requests after the repository is already linked to a Cl
 
 Reference implementation: [ganakailabs/cloudeval-azure-arm-review-example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) contains nested ARM templates, `.cloudeval/config.yaml`, a Cloudeval review workflow, and demo PRs for [security hardening](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/3), [risky regression](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/1), and [cost optimization](https://github.com/ganakailabs/cloudeval-azure-arm-review-example/pull/2). Fork it when you want to test this action against your own Cloudeval project.
 
+For AWS CloudFormation beta, use [ganakailabs/cloudeval-aws-cloudformation-review-example](https://github.com/ganakailabs/cloudeval-aws-cloudformation-review-example). The [review surfaces demo PR](https://github.com/ganakailabs/cloudeval-aws-cloudformation-review-example/pull/5) shows CloudFormation YAML and JSON findings with a PR summary, Cloudeval App Check Run annotations, SARIF/code scanning upload, and workflow artifacts.
+
 Setup checklist:
 
 1. Install the **Cloudeval GitHub App** on the repository and create/import the Cloudeval project from that repository.
@@ -115,7 +117,7 @@ jobs:
           pr_line_comments: false
           sarif: true
           upload_artifacts: true
-      - uses: github/codeql-action/upload-sarif@v4
+      - uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d
         if: always() && steps.cloudeval.outputs.sarif_path != ''
         with:
           sarif_file: ${{ steps.cloudeval.outputs.sarif_path }}
