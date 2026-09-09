@@ -1,12 +1,15 @@
 # Cloudeval GitHub Action
 
+Review Azure infrastructure changes in pull requests with architecture, cost and validation findings. Inspect the review evidence, then use your configured gates to decide whether CI passes.
+
+[View the public Azure ARM example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) · [Install the existing Marketplace Action](https://github.com/marketplace/actions/cloudeval-action)
+
 <p align="center">
   <img src="media/logo-abstract-cloud-256.png" alt="Cloudeval" width="128" height="128" />
 </p>
 
 Composite action that installs the [Cloudeval CLI](https://github.com/ganakailabs/cloudeval-cli) and runs **review**, **ask**, **agent**, **reports**, **merge gating**, and **nightly** flows, with **job summaries**, **PR comments**, and **artifacts**.
 
-The image above is the same **abstract cloud** mark as in the web app ([`app/layout.tsx` OpenGraph](https://github.com/ganakailabs/cloudeval-frontend/blob/main/app/layout.tsx) uses `/common/logo-abstract-cloud-dark-v3.png`). The GitHub Marketplace badge still uses GitHub’s **Feather `cloud`** icon because [custom images are not supported](https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#branding) in `action.yml` `branding`.
 
 Authentication uses a **scoped access key** (`cev_…`). Create keys in the app: **Developer → API & CLI access keys**. Store the secret as `CLOUDEVAL_ACCESS_KEY` (see [docs/ci-access-keys.md](docs/ci-access-keys.md)). For PR review, use the **GitHub Actions CI** key template so Cloudeval can run reports, generate AI summaries, and post GitHub App comments for GitHub-linked projects.
 
