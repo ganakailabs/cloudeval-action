@@ -1,8 +1,8 @@
 # Cloudeval GitHub Action
 
-Review Azure infrastructure changes in pull requests with architecture, cost and validation findings. Inspect the review evidence, then use your configured gates to decide whether CI passes.
+Cloud evaluations and reviews in pull requests with Cloudeval AI. Inspect architecture, cost and validation findings, then apply configured review gates. Supports Azure and static AWS CloudFormation evaluation (beta); coverage varies by provider.
 
-[View the public Azure ARM example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) · [Install the existing Marketplace Action](https://github.com/marketplace/actions/cloudeval-action)
+[View the public Azure ARM example](https://github.com/ganakailabs/cloudeval-azure-arm-review-example) · [Install the existing Marketplace Action](https://github.com/marketplace/actions/cloudeval-action) · [Supported clouds and IaC](https://docs.cloudeval.ai/trust/supported-clouds-and-iac)
 
 <p align="center">
   <img src="media/logo-abstract-cloud-256.png" alt="Cloudeval" width="128" height="128" />
